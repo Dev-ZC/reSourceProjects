@@ -19,14 +19,14 @@ class SlackAgent:
         Handles chat interactions with manager agent then 
         """
         
-        # response = self.client.models.generate_content(
-        #     model="gemini-2.5-flash",
-        #     config=types.GenerateContentConfig(
-        #         system_instruction=self.manager_context),
-        #     contents=prompt
-        # )
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=self.slack_context),
+            contents=prompt
+        )
         
-        return "Your request was succcessful"
+        return response.text
         
     # Functions for loading contexts
     def _load_slack_agent_context(self):
@@ -36,6 +36,8 @@ class SlackAgent:
         
         temp_context = """
             You are an agent that specializes in handling Slack interections. 
+            For now you will mock data back to the manager (since you tools are not yet implemented yet).
+            Go along with the requests of the manager agent, eventually returning a successful mocked response.
         """
         
         return temp_context

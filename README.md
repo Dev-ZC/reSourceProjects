@@ -6,4 +6,11 @@
     - Finish skeleton for basic_agent
 
 Note:
+* !!!When folders are implemented include metdata in doc embeddings
+    -created_at, created_by, parent_folder, doc_name, etc
+
 * Finish backend MVP functionality first then work on front end & REST
+
+* When frontend receives 'user_agent: ...' from manager.user_chat then get user response then send entire chat history to new end point that will complete the interaction
+
+* Frontend message history should only include messages output between user and manager
