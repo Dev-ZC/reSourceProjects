@@ -9,14 +9,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Manager:
-    def __init__(self, model_name: str = "gemini-2.5-flash") -> None:
+    def __init__(self, authenticated_user: str = None, model_name: str = "gemini-2.5-flash") -> None:
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.model_name: str = model_name
         self.client = genai.Client(api_key=self.GEMINI_API_KEY)
         self.manager_context: str = self._load_manager_context()
+        self.authenticated_user = authenticated_user
+        
         self.agents = {
-            'slack_agent': SlackAgent(),
-            'project_agent': ProjectAgent(),
+            'slack_agent': SlackAgent(self.authenticated_user),
+            'project_agent': ProjectAgent(self.authenticated_user),
         }
     
     def user_chat(self, prompt) -> str:
@@ -227,6 +229,6 @@ class Manager:
     
 manager = Manager()
 
-#print(manager.user_chat("can you send a slack message to John Doe with the info from Quarter 2 results?"))
+print(manager.user_chat("can you send a slack message to John Doe with the info from Quarter 2 results?"))
 print(manager.user_chat("what can you do?"))
 

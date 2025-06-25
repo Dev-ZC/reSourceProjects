@@ -265,5 +265,5 @@ print(project_data_service.authenticate_test_user("zacole@usc.edu", "password"))
 #print(project_data_service.delete_document("302caa9e-edd7-4d67-a58e-1b88272c7bb8"))
 
 #print(project_data_service.doc_similarity_search("bananas and apples", "58b89576-ec2b-4d7c-aafd-2adb4b72d88e"))
-print(project_data_service.get_documents_embeddings(["f10a9a34-0c8f-49c6-af96-20a599b4665a", "3214f7a3-bcdc-417a-865c-28ffc416660b"]))
+print(project_data_service.get_multiple_doc_embeddings(["f10a9a34-0c8f-49c6-af96-20a599b4665a", "3214f7a3-bcdc-417a-865c-28ffc416660b"]))
 

@@ -1,5 +1,6 @@
 from google import genai
 from google.genai import types
+from app.services.project_data_service import ProjectDataService
 
 import os
 from dotenv import load_dotenv
@@ -8,11 +9,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ProjectAgent:
-    def __init__(self, model_name: str = "gemini-2.5-flash") -> None:
+    def __init__(self, authenticated_user=None, model_name: str = "gemini-2.5-flash") -> None:
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.model_name = model_name
         self.client = genai.Client(api_key=self.GEMINI_API_KEY)
         self.project_context: str = self._load_project_agent_context()
+        
+        self.authenticated_user = authenticated_user
+        self.project_data_service = ProjectDataService(self.authenticated_user)
     
     def chat(self, prompt) -> str:
         """
@@ -43,7 +47,7 @@ class ProjectAgent:
         """
         return temp_context
     
-    def prompt_search(self, query: str) -> str:
+    def prompt_search_project_docs(self, query: str) -> str:
         """
         Function to search for relevant project information based on a query.
         """
