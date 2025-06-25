@@ -2,6 +2,7 @@ from google import genai
 from google.genai import types
 from app.agents.slack_agent import SlackAgent
 from app.agents.project_agent import ProjectAgent
+from app.models.models import UserContext
 
 import os
 from dotenv import load_dotenv
@@ -9,16 +10,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Manager:
-    def __init__(self, authenticated_user: str = None, model_name: str = "gemini-2.5-flash") -> None:
+    def __init__(self, authenticated_user=None, user_context=None, supabase_session=None, model_name: str = "gemini-2.5-flash") -> None:
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.model_name: str = model_name
         self.client = genai.Client(api_key=self.GEMINI_API_KEY)
         self.manager_context: str = self._load_manager_context()
         self.authenticated_user = authenticated_user
+        self.user_context = user_context
         
         self.agents = {
-            'slack_agent': SlackAgent(self.authenticated_user),
-            'project_agent': ProjectAgent(self.authenticated_user),
+            'slack_agent': SlackAgent(self.authenticated_user, self.user_context),
+            'project_agent': ProjectAgent(
+                authenticated_user=self.authenticated_user,
+                user_context=self.user_context,
+                supabase_session=supabase_session
+            ),
         }
     
     def user_chat(self, prompt) -> str:
@@ -203,10 +209,10 @@ class Manager:
             You must end a conversation when you realize that you have enough information to respond to the user OR you are unable to complete the user's request.
             \n
             Available agents:
-            -response_agent: Provide a summary of actions to the agent so it can respond to the user. (Tools: respond_to_user(summary))
+            -response_agent: Provide a helpful response to be sent to the user based on conversation history.
             -user_agent: This agent is helpful for getting more clarification from the user (Tools: ask_user(question))
             -slack_agent: This agent is responsible for sending messages to Slack. (Tools: send_slack_message(message, channel))
-            -project_agent: This agent is responsible for getting information related to the user's project. (Tools: get_project_info(query))
+            -project_agent: This agent is responsible for getting information related to the user's project and creating new docs (Tools: prompt_search_project_docs(query), create_document(self, doc_name: str, content: str))
             \n
             Agents can only complete one task at a time so if you need multiple tasks completed by the same agent, you must call the agent again after it responds to the initial request.
             You may only output the name of the agent you want to use, and the prompt you want to send to it.
@@ -226,9 +232,52 @@ class Manager:
     def _load_user_context(self, user_id):
         "Function to load the context of a user"
         pass
-    
-manager = Manager()
 
-print(manager.user_chat("can you send a slack message to John Doe with the info from Quarter 2 results?"))
-print(manager.user_chat("what can you do?"))
+
+# Testing
+from supabase import create_client, Client  
+    
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(url, key)  
+
+# Authenticate and get session
+response = supabase.auth.sign_in_with_password({
+    "email": "zacole@usc.edu",
+    "password": "password"
+})
+
+auth_user = response.user
+session = response.session  # This is the key part!
+user_context = UserContext(currProjectId="58b89576-ec2b-4d7c-aafd-2adb4b72d88e")
+
+# Pass the session to your classes
+manager = Manager(
+    authenticated_user=auth_user, 
+    user_context=user_context,
+    supabase_session=session
+)
+
+#print(manager.user_chat("can you send a slack message to John Doe with the info from Quarter 2 results?"))
+#print(manager.user_chat("what can you do?"))
+
+# Works
+#print(manager.user_chat("Create a document names apple poem with a poem about apples in the project docs."))
+
+# Need to test (keep getting overload error so cant test)
+print(manager.user_chat("Check the project docs to see if John Doe loves apples, if he does then create a doc with a poem about apples"))
+
+# Test direct creation
+# project_agent = ProjectAgent(
+#     authenticated_user=auth_user, 
+#     user_context=user_context,
+#     supabase_session=session
+# )
+
+# result = project_agent.project_data_service.create_document(
+#     project_id=user_context.currProjectId,
+#     doc_name="Direct Gemini Doc with JWT",
+#     content="This is a test document created with proper JWT session."
+# )
+# print("Direct create_document result:", result)
 

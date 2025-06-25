@@ -8,13 +8,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class SlackAgent:
-    def __init__(self, authenticated_user=None, model_name: str = "gemini-2.5-flash") -> None:
+    def __init__(self, authenticated_user=None, user_context=None, model_name: str = "gemini-2.5-flash") -> None:
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.model_name = model_name
         self.client = genai.Client(api_key=self.GEMINI_API_KEY)
         self.slack_context: str = self._load_slack_agent_context()
         
         self.authenticated_user = authenticated_user
+        self.user_context = user_context
     
     def chat(self, prompt) -> str:
         """

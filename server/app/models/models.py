@@ -6,3 +6,7 @@ class SignupRequest(BaseModel):
     password: str
     username: str
     
+class UserContext(BaseModel):
+    currProjectId: Optional[str] = None
+    
+    

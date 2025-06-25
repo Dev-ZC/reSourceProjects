@@ -7,11 +7,18 @@ from google.genai import types
 load_dotenv()
 
 class ProjectDataService:
-    def __init__(self, authenticated_user: str = None):
+    def __init__(self, authenticated_user=None, supabase_session=None):
         self.url: str = os.getenv("SUPABASE_URL")
         self.key: str = os.getenv("SUPABASE_KEY")
         self.supabase: Client = create_client(self.url, self.key)
         self.authenticated_user = authenticated_user
+        
+        # Set the session if provided
+        if supabase_session:
+            self.supabase.auth.set_session(
+                access_token=supabase_session.access_token,
+                refresh_token=supabase_session.refresh_token
+            )
         
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.model_name: str = "text-embedding-004"
@@ -30,6 +37,9 @@ class ProjectDataService:
         except Exception as e:
             print(f"Auth error: {e}")
             return None
+        
+    def set_authenticated_user(self, user):
+        self.authenticated_user = user
         
     # ====> Project Management Functions <====
     def get_user_projects(self):
@@ -249,15 +259,16 @@ class ProjectDataService:
         
         
     
-test_user_id="81bac8b9-3fc3-4d22-82c6-46a52f252028"
+#test_user_id="81bac8b9-3fc3-4d22-82c6-46a52f252028"
 #test_project_id=""
 
-project_data_service = ProjectDataService()
-print(project_data_service.authenticate_test_user("zacole@usc.edu", "password"))
+# Example usage:
+#project_data_service = ProjectDataService()
+#print(project_data_service.authenticate_test_user("zacole@usc.edu", "password"))
 
 #print(project_data_service.create_project("test_project_2"))
 #print(project_data_service.get_user_projects())
-#print(project_data_service.create_document("58b89576-ec2b-4d7c-aafd-2adb4b72d88e", "test_doc_with_embeddings_2", "misha hates apples and loves bananas"))
+#print(project_data_service.create_document("58b89576-ec2b-4d7c-aafd-2adb4b72d88e", "test_doc_with_embeddings_3", "work?"))
 #print(project_data_service.get_project_documents("58b89576-ec2b-4d7c-aafd-2adb4b72d88e"))
 #print(project_data_service.update_document_content("f10a9a34-0c8f-49c6-af96-20a599b4665a", "john doe loves apples and hates bananas"))
 
@@ -265,5 +276,5 @@ print(project_data_service.authenticate_test_user("zacole@usc.edu", "password"))
 #print(project_data_service.delete_document("302caa9e-edd7-4d67-a58e-1b88272c7bb8"))
 
 #print(project_data_service.doc_similarity_search("bananas and apples", "58b89576-ec2b-4d7c-aafd-2adb4b72d88e"))
-print(project_data_service.get_multiple_doc_embeddings(["f10a9a34-0c8f-49c6-af96-20a599b4665a", "3214f7a3-bcdc-417a-865c-28ffc416660b"]))
+#print(project_data_service.get_multiple_doc_embeddings(["f10a9a34-0c8f-49c6-af96-20a599b4665a", "3214f7a3-bcdc-417a-865c-28ffc416660b"]))
 

@@ -16,3 +16,7 @@ Note:
 * When frontend receives 'user_agent: ...' from manager.user_chat then get user response then send entire chat history to new end point that will complete the interaction
 
 * Frontend message history should only include messages output between user and manager
+
+-- Add Tools: Update manager prompt, update agent prompt
+
+* Store embeddings in chunks instead of full docs so only those chunks can be returned an searched instead of whole docs
