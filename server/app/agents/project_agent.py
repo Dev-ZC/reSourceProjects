@@ -8,8 +8,12 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file
 load_dotenv()
 
+# === > To add < ===
+# search be name (instead of search by content, might already work since name is in embeddedings)
+# get metadata of all project docs
+# get all docs, get one doc
 class ProjectAgent:
-    def __init__(self, authenticated_user=None, user_context=None, supabase_session=None, model_name: str = "gemini-2.0-flash") -> None:
+    def __init__(self, authenticated_user=None, user_context=None, supabase_session=None, model_name: str = "gemini-2.5-flash") -> None:
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.model_name = model_name
         self.client = genai.Client(api_key=self.GEMINI_API_KEY)
@@ -215,7 +219,7 @@ class ProjectAgent:
                 Instructions:
                 - Answer based primarily on the provided documents
                 - If the documents don't contain enough information, clearly state this
-                - Cite which document(s) you're referencing in your answer by doc_name"""
+                - Cite which document(s) you're referencing in your answer by its title not number"""
 
             # 5. Make the Gemini call with proper configuration
             response = self.client.models.generate_content(

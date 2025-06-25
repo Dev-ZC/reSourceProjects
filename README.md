@@ -20,3 +20,8 @@ Note:
 -- Add Tools: Update manager prompt, update agent prompt
 
 * Store embeddings in chunks instead of full docs so only those chunks can be returned an searched instead of whole docs
+
+* Project Agent Needs: get_all_project_related_metadata
+
+* Agents themselves cant execute tools on their own if I want human in the loop
+(temp fix could just have manager send the user agent to verify then go through same user agent loop)

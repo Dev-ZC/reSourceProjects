@@ -2,7 +2,7 @@ from google import genai
 from google.genai import types
 from app.agents.slack_agent import SlackAgent
 from app.agents.project_agent import ProjectAgent
-from app.models.models import UserContext
+from app.models.models import UserContext, AgentConversationResponse
 
 import os
 from dotenv import load_dotenv
@@ -44,7 +44,7 @@ class Manager:
         
         return response
 
-    def _start_agent_conversation(self, initial_manager_response, original_user_prompt) -> str:
+    def _start_agent_conversation(self, initial_manager_response, original_user_prompt) -> AgentConversationResponse:
         """
         Starts a conversation with the agent team using string-based conversation tracking.
         Loops until the response agent is called to summarize the conversation.
@@ -78,10 +78,23 @@ class Manager:
             if agent_name.lower() == 'response_agent':
                 # Extract the summary and return it
                 print(f"Chat history: \n --- \n {chr(10).join(conversation_history)} \n --- \n")
-                return agent_prompt
+                
+                response = AgentConversationResponse(
+                    wait_for_human=False,
+                    model_response=agent_prompt
+                )
+                
+                return response
             elif agent_name.lower() == 'user_agent':
                 # If user_agent is called, we can ask the user for clarification
-                return f"user_agent: {conversation_history}"
+                
+                response = AgentConversationResponse(
+                    wait_for_human=True,
+                    conversation_history=conversation_history,
+                    original_prompt=original_user_prompt
+                )
+                
+                return response
             
             # Call the specified agent
             agent_response = self._call_agent(agent_name, agent_prompt)
@@ -110,7 +123,10 @@ class Manager:
             conversation_history.append(f"Manager: {current_message}")
         
         # If we exit the loop without calling response_agent, return a fallback
-        return "I was unable to complete your request. The conversation exceeded the maximum number of iterations or encountered an error."
+        return AgentConversationResponse(
+            wait_for_human=false, 
+            model_response="I was unable to complete your request. The conversation exceeded the maximum number of iterations or encountered an error."
+        )
     
     def continue_agent_conversation(self, conversation_history) -> str:
         """
@@ -265,7 +281,14 @@ manager = Manager(
 #print(manager.user_chat("Create a document names apple poem with a poem about apples in the project docs."))
 
 # Need to test (keep getting overload error so cant test)
-print(manager.user_chat("Check the project docs to see if John Doe loves apples, if he does then create a doc with a poem about apples"))
+#print(manager.user_chat("Check the project docs to see if John Doe loves apples, if he does then create a doc with a poem about apples"))
+
+# It DOES NOT WORK but should be made to work later
+# For now should just ask user to be more specific
+#print(manager.user_chat("Create a document summarizing the other project docs."))
+
+#print(manager.user_chat("Create a document summarizing the other project docs related to apples."))
+print(manager.user_chat("Check my documents to see if anyone likes apples"))
 
 # Test direct creation
 # project_agent = ProjectAgent(
