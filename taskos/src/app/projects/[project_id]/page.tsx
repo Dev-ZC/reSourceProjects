@@ -124,6 +124,7 @@ export default function App() {
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             proOptions={{ hideAttribution: true }}
+            noDragClassName='nodrag'
         >
         <Controls/>
         {/*<MiniMap />*/}
