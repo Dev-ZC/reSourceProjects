@@ -26,24 +26,24 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const [expanded, setExpanded] = useState(false);
     const [content, setContent] = useState(initialContent);
     const [size, setSize] = useState({ width: 800, height: 600 });
-    const nodeRef = useRef<HTMLDivElement>(null);
+    const expandedNodeRef = useRef<HTMLDivElement>(null);
+    const collapsedNodeRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const quillRef = useRef<any>(null);
 
-  // Initialize Quill when expanded
-  // Modify your useEffect for Quill initialization:
-  // Modify your useEffect for Quill initialization:
-useEffect(() => {
+  // Initialize Quill only when expanded
+  useEffect(() => {
     if (expanded && editorRef.current && !quillRef.current) {
       import('quill').then(QuillModule => {
         const Quill = QuillModule.default;
         
-        // Get the editor container bounds
-        const editorBounds = editorRef.current;
+        // Create a fresh div for Quill
+        const quillContainer = document.createElement('div');
+        editorRef.current!.appendChild(quillContainer);
         
-        quillRef.current = new Quill(editorRef.current!, {
+        quillRef.current = new Quill(quillContainer, {
           theme: 'bubble',
-          bounds: editorBounds, // Use the editor container as bounds
+          bounds: editorRef.current,
           placeholder: 'Start writing...',
           modules: {
             toolbar: [
@@ -78,18 +78,15 @@ useEffect(() => {
           tooltip.position = function(reference: any) {
             const result = originalPosition(reference);
             
-            // Get the editor bounds
             const editorBounds = editorRef.current;
             if (!editorBounds) return result;
 
             const editorRect = editorBounds.getBoundingClientRect();
             const tooltipRect = this.root.getBoundingClientRect();
             
-            // Calculate if tooltip would overflow
             const tooltipLeft = parseInt(this.root.style.left) || 0;
             const tooltipWidth = tooltipRect.width;
             
-            // Adjust horizontal position if it would overflow
             if (tooltipLeft < 0) {
               this.root.style.left = '10px';
             } else if (tooltipLeft + tooltipWidth > editorRect.width) {
@@ -101,10 +98,29 @@ useEffect(() => {
         }
       });
     }
-  
+  }, [expanded, content]);
+
+  // Cleanup when collapsing or unmounting
+  useEffect(() => {
     return () => {
       if (quillRef.current) {
+        // Save content before cleanup
+        if (quillRef.current.root) {
+          setContent(quillRef.current.root.innerHTML);
+        }
+        
+        // Remove event listeners
+        if (quillRef.current.off) {
+          quillRef.current.off('text-change');
+        }
+        
+        // Clear Quill instance
         quillRef.current = null;
+      }
+      
+      // Clear editor container completely
+      if (editorRef.current) {
+        editorRef.current.innerHTML = '';
       }
     };
   }, [expanded]);
@@ -118,6 +134,21 @@ useEffect(() => {
 
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Save content before toggling if we're collapsing
+    if (expanded && quillRef.current && quillRef.current.root) {
+      setContent(quillRef.current.root.innerHTML);
+      
+      // Clean up Quill instance immediately
+      quillRef.current.off('text-change');
+      quillRef.current = null;
+      
+      // Clear editor container
+      if (editorRef.current) {
+        editorRef.current.innerHTML = '';
+      }
+    }
+    
     setExpanded(!expanded);
   };
 
@@ -138,18 +169,19 @@ useEffect(() => {
   };
 
   // Center the node using React Flow's setCenter API
-
   const centerNode = (e: React.MouseEvent) => {
     e.stopPropagation();
     const node = getNode(id);
-    if (node && nodeRef.current) {
+    const currentNodeRef = expanded ? expandedNodeRef.current : collapsedNodeRef.current;
+    
+    if (node && currentNodeRef) {
       // Get the actual rendered dimensions of the node
-      const nodeRect = nodeRef.current.getBoundingClientRect();
-      const flow = nodeRef.current.closest('.react-flow');
+      const nodeRect = currentNodeRef.getBoundingClientRect();
+      const flow = currentNodeRef.closest('.react-flow');
       
       if (flow) {
         // Get current zoom level
-        const { zoom } = getViewport(); // Use the getViewport function you destructured
+        const { zoom } = getViewport();
         
         // Calculate actual node dimensions (unscaled)
         const nodeWidth = nodeRect.width / zoom;
@@ -166,7 +198,6 @@ useEffect(() => {
     }
   };
 
-
   // Style for expanded state with smooth transitions
   const expandedStyle = {
     width: size.width,
@@ -177,15 +208,16 @@ useEffect(() => {
     transformOrigin: 'top left',
   };
 
+  // Render expanded state
   if (expanded) {
     return (
       <div 
         className="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
         style={{
             ...expandedStyle,
-            pointerEvents: 'none', // Disable pointer events on the container
+            pointerEvents: 'none',
           }}
-        ref={nodeRef}
+        ref={expandedNodeRef}
         tabIndex={-1}
       >
         {/* Header with controls */}
@@ -193,7 +225,9 @@ useEffect(() => {
             className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 z-50 relative bg-white dark:bg-gray-800 select-none"
             style={{ cursor: 'grab', pointerEvents: 'auto', userSelect: 'none' }}
             data-drag-handle
-            onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()} 
+            onPointerDown={e => e.stopPropagation()} 
+            onClick={e => e.stopPropagation()}
           >
           <h3 className="font-medium text-gray-800 dark:text-gray-100 truncate max-w-[60%]">
             {title}
@@ -243,7 +277,7 @@ useEffect(() => {
           </div>
         </div>
         
-        {/* Quill Editor */}
+        {/* Quill Editor Container */}
         <div 
             ref={editorRef} 
             className="nodrag flex-1 overflow-auto"
@@ -267,11 +301,12 @@ useEffect(() => {
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 
+  // Render collapsed state - completely separate from expanded
   return (
     <div 
       className="group flex flex-col items-center p-4 w-40 hover:scale-[1.03] cursor-pointer"
       style={collapsedStyle}
-      ref={nodeRef}
+      ref={collapsedNodeRef}
       onClick={toggleExpand}
       data-ignore-drag
     >
