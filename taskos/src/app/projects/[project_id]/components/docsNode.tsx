@@ -1,17 +1,17 @@
 import React from 'react';
 import { Node, NodeProps } from 'reactflow';
 import Image from 'next/image';
-import FolderIcon from '../icons/folderIcon.svg';
+import DocsNodeIcon from '../icons/docsNodeIcon.svg';
 
-// Define the data shape for our folder node
-type FolderNodeData = {
+// Define the data shape for our docs node
+type DocsNodeData = {
   title: string;
   createdAt: string;
 };
 
-type FolderNodeType = Node<FolderNodeData>;
+type DocsNodeType = Node<DocsNodeData>;
 
-const FolderNode = (props: NodeProps<FolderNodeData>) => {
+const DocsNode = (props: NodeProps<DocsNodeData>) => {
   const { data } = props;
   const { title, createdAt } = data;
 
@@ -21,8 +21,8 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
         <div className="absolute inset-0 dark:bg-gray-800/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="w-24 h-24 relative transform transition-all duration-300 group-hover:scale-105">
           <Image 
-            src={FolderIcon} 
-            alt="Folder" 
+            src={DocsNodeIcon} 
+            alt="Document" 
             fill
             style={{ objectFit: 'contain' }}
             className="transition-transform duration-300 group-hover:translate-y-[-2px]"
@@ -33,7 +33,6 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
         <div className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate w-full transition-colors duration-300 group-hover:text-gray-900 dark:group-hover:text-white">
           {title}
         </div>
-
         {/* Created At */}
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {createdAt}
@@ -43,4 +42,4 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
   );
 };
 
-export default FolderNode;
+export default DocsNode;

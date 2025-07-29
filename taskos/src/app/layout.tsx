@@ -8,7 +8,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="h-screen w-screen">
         <SidebarProvider>
           <AppSidebar/>
-          <main className="relative h-full -ml-0.5 mr-0.5">
+          <main className="relative h-full -ml-0.5 mr-0">
             <SidebarTrigger className="absolute top-4 left-4 z-50" 
               style={{
                 background: '#B4BDC3', 
