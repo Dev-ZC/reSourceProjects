@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -12,7 +12,8 @@ import {
   Connection,
   NodeProps
 } from '@xyflow/react';
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
+import ChatWindow from './components/chatWindow';
  
 import '@xyflow/react/dist/style.css';
 import dynamic from 'next/dynamic';
@@ -102,17 +103,59 @@ export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
  
+    
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isChatFocused, setIsChatFocused] = useState(false);
+  const [isChatRendered, setIsChatRendered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatWindowRef = useRef<HTMLDivElement>(null);
+  const chatBarRef = useRef<HTMLDivElement>(null);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
 
-  const handleChatBarClick = () => {
+        const handleChatBarClick = () => {
+    if (!isChatOpen) {
+      setIsChatRendered(true);
+      setTimeout(() => setIsChatOpen(true), 10); // Allow component to mount before animating
+    }
     inputRef.current?.focus();
   };
+
+      const handleCloseChat = () => {
+    setIsChatOpen(false);
+    setIsChatFocused(false);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        chatWindowRef.current &&
+        !chatWindowRef.current.contains(event.target as Node) &&
+        chatBarRef.current &&
+        !chatBarRef.current.contains(event.target as Node)
+      ) {
+        setIsChatOpen(false);
+        setIsChatFocused(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [chatWindowRef, chatBarRef]);
+
+  useEffect(() => {
+    if (!isChatOpen) {
+      const timer = setTimeout(() => {
+        setIsChatRendered(false);
+      }, 200); // Match the duration of the transition
+      return () => clearTimeout(timer);
+    }
+  }, [isChatOpen]);
  
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
@@ -122,23 +165,33 @@ export default function App() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onPaneClick={handleCloseChat}
             nodeTypes={nodeTypes}
             proOptions={{ hideAttribution: true }}
             noDragClassName='nodrag'
+            autoPanSpeed={20}
         >
         <Controls/>
         {/*<MiniMap />*/}
         <Background bgColor='#C4CACC' color='#C4CACC' gap={12} size={1} />
         </ReactFlow>
         <div 
-          id="chat-bar" 
-          className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-all duration-200 ${isChatFocused ? 'scale-105' : ''}`}
+          id="chat-window"
+          ref={chatWindowRef}
+          className={`absolute bottom-28 left-1/2 h-[80%] -translate-x-1/2 w-[650px] transition-all duration-300 ease-in-out z-10 ${isChatOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+        >
+          {isChatRendered && <ChatWindow onClose={handleCloseChat} />}
+        </div>
+        <div
+          id="chat-bar"
+          ref={chatBarRef}
+          className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-all duration-200 z-20 ${isChatOpen ? 'scale-105' : ''}`}
           onClick={handleChatBarClick}
         >
             <Input
               ref={inputRef}
               placeholder="Start chatting now..."
-              className={`w-120 h-12 border-0 placeholder:text-[#7C868D] pl-7 outline-0 transition-all duration-200 ${isChatFocused ? 'ring-2 ring-blue-400' : ''}`}
+              className={`w-[480px] h-12 border-0 placeholder:text-[#7C868D] pl-7 outline-0 transition-all duration-200 ${isChatFocused ? 'ring-2 ring-blue-400' : ''}`}
               style={{ 
                 background: isChatFocused ? '#E8EBED' : '#D0D5D8', 
                 color: '#7C868D', 
@@ -147,7 +200,13 @@ export default function App() {
                 borderRadius: '15px',
                 transform: isChatFocused ? 'translateY(-2px)' : 'translateY(0)'
               }}
-              onFocus={() => setIsChatFocused(true)}
+              onFocus={() => {
+                setIsChatFocused(true);
+                if (!isChatOpen) {
+                  setIsChatRendered(true);
+                  setTimeout(() => setIsChatOpen(true), 10);
+                }
+              }}
               onBlur={() => setIsChatFocused(false)}
             />
         </div>
