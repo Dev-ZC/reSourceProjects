@@ -126,7 +126,7 @@
 @layer components {
   .glass-background {
     /* From https://css.glass */
-    background: rgba(231, 233, 234, 0.8) !important; /* Semi-transparent light color */
+    background: rgba(231, 233, 234, 0.9) !important; /* Semi-transparent light color */
     border-radius: 16px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(15px) !important;

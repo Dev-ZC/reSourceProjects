@@ -170,6 +170,7 @@ export default function App() {
             proOptions={{ hideAttribution: true }}
             noDragClassName='nodrag'
             autoPanSpeed={20}
+            panOnScroll
         >
         <Controls/>
         {/*<MiniMap />*/}
@@ -178,7 +179,7 @@ export default function App() {
         <div 
           id="chat-window"
           ref={chatWindowRef}
-          className={`absolute bottom-28 left-1/2 h-[80%] -translate-x-1/2 w-[650px] transition-all duration-300 ease-in-out z-10 ${isChatOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+          className={`absolute bottom-28 left-1/2 h-[80%] -translate-x-1/2 w-[700px] transition-all duration-300 ease-in-out z-10 ${isChatOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
         >
           {isChatRendered && <ChatWindow onClose={handleCloseChat} />}
         </div>
