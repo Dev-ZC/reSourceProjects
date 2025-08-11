@@ -33,7 +33,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     <div 
       className="w-full h-[100%] shadow-lg flex flex-col rounded-lg glass-background"
     >
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto no-scrollbar">
         {messages.map((msg, index) => (
           msg.type === 'user' ? (
             <UserMessage key={index} message={msg.text} />

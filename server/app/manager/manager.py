@@ -27,22 +27,29 @@ class Manager:
             ),
         }
     
-    def user_chat(self, prompt) -> str:
+    def user_chat(self, prompt) -> AgentConversationResponse:
         """
-        Function handles user chat interactions, and calls agent chat if needed
+        Handles user chat interactions and initiates agent conversations.
+        Always returns an AgentConversationResponse.
         """
-        # Initial response from the manager agent
-        response = self.client.models.generate_content(
-            model="gemini-2.5-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=self.manager_context),
-            contents=prompt
-        )
-        
-        # Start agent conversation with the manager's response
-        response = self._start_agent_conversation(response.text, prompt)
-        
-        return response
+        try:
+            # Initial response from the manager agent
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                config=types.GenerateContentConfig(
+                    system_instruction=self.manager_context),
+                contents=prompt
+            )
+            
+            # Start agent conversation with the manager's response
+            return self._start_agent_conversation(response.text, prompt)
+            
+        except Exception as e:
+            # Return an error response if something goes wrong
+            return AgentConversationResponse(
+                wait_for_human=True,
+                model_response=f"An error occurred while processing your request: {str(e)}"
+            )
 
     def _start_agent_conversation(self, initial_manager_response, original_user_prompt) -> AgentConversationResponse:
         """
@@ -90,8 +97,7 @@ class Manager:
                 
                 response = AgentConversationResponse(
                     wait_for_human=True,
-                    conversation_history=conversation_history,
-                    original_prompt=original_user_prompt
+                    conversation_history=conversation_history
                 )
                 
                 return response
@@ -128,75 +134,127 @@ class Manager:
             model_response="I was unable to complete your request. The conversation exceeded the maximum number of iterations or encountered an error."
         )
     
-    def continue_agent_conversation(self, conversation_history) -> str:
+    def continue_agent_conversation(self, conversation_history) -> AgentConversationResponse:
         """
         Continues an agent conversation given a conversation history list.
+        Returns an AgentConversationResponse indicating whether to wait for human input or provide a model response.
         """
-        max_iterations = 10
-        iterations = 0
-
-        # Use the last manager message as the current message to parse next agent
-        # Find the last message from the manager in the conversation history
-        manager_messages = [msg for msg in conversation_history if msg.startswith("Manager:")]
-        if not manager_messages:
-            return "No manager message found to continue the conversation."
-        current_message = manager_messages[-1].replace("Manager:", "", 1).strip()
-
-        # Try to extract the original user prompt for context
-        user_messages = [msg for msg in conversation_history if msg.startswith("User:")]
-        original_user_prompt = user_messages[0].replace("User:", "", 1).strip() if user_messages else ""
-
-        while iterations < max_iterations:
-            iterations += 1
-
-            # Parse the agent name and prompt from the manager's response
-            if ':' not in current_message:
-                # If no agent specified, break the loop
-                break
-
-            try:
-                agent_name, agent_prompt = current_message.split(':', 1)
-                agent_name = agent_name.strip()
-                agent_prompt = agent_prompt.strip()
-            except ValueError:
-                # If parsing fails, break the loop
-                break
-
-            # Check if response_agent is called (end condition)
-            if agent_name.lower() == 'response_agent':
-                print(f"Chat history: \n --- \n {chr(10).join(conversation_history)} \n --- \n")
-                return agent_prompt
-            elif agent_name.lower() == 'user_agent':
-                return f"user_agent: {conversation_history}"
-
-            # Call the specified agent
-            agent_response = self._call_agent(agent_name, agent_prompt)
-            conversation_history.append(f"{agent_name}: {agent_response}")
-
-            # Send agent response back to manager for next decision
-            manager_prompt = f"""
-            Original user request: {original_user_prompt}
-
-            Conversation so far:
-            {chr(10).join(conversation_history)}
-
-            Agent {agent_name} just responded with: {agent_response}
-
-            What should happen next? Remember to use response_agent when you have enough information to respond to the user or when you cannot complete the request.
-            """
-
-            manager_response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
-                config=types.GenerateContentConfig(
-                    system_instruction=self.manager_context),
-                contents=manager_prompt
+        try:
+            # Extract the original user request from conversation history
+            original_user_prompt = ""
+            if conversation_history and len(conversation_history) > 0:
+                first_entry = conversation_history[0]
+                if first_entry.startswith("User: "):
+                    original_user_prompt = first_entry[6:]  # Remove "User: " prefix
+            
+            max_iterations = 10
+            iterations = 0
+            
+            # Get the last manager response to determine next action
+            last_manager_response = ""
+            for entry in reversed(conversation_history):
+                if entry.startswith("Manager: "):
+                    last_manager_response = entry[9:]  # Remove "Manager: " prefix
+                    break
+            
+            # If no manager response found, ask manager what to do next
+            if not last_manager_response:
+                manager_prompt = f"""
+                Original user request: {original_user_prompt}
+                
+                Conversation so far:
+                {chr(10).join(conversation_history)}
+                
+                The conversation has been resumed. What should happen next? Remember to use response_agent when you have enough information to respond to the user or when you cannot complete the request.
+                """
+                
+                manager_response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    config=types.GenerateContentConfig(
+                        system_instruction=self.manager_context),
+                    contents=manager_prompt
+                )
+                
+                last_manager_response = manager_response.text
+                conversation_history.append(f"Manager: {last_manager_response}")
+            
+            current_message = last_manager_response
+            
+            while iterations < max_iterations:
+                iterations += 1
+                
+                # Parse the agent name and prompt from the manager's response
+                if ':' not in current_message:
+                    # If no agent specified, break the loop
+                    break
+                    
+                try:
+                    agent_name, agent_prompt = current_message.split(':', 1)
+                    agent_name = agent_name.strip()
+                    agent_prompt = agent_prompt.strip()
+                except ValueError:
+                    # If parsing fails, break the loop
+                    break
+                
+                # Check if response_agent is called (end condition)
+                if agent_name.lower() == 'response_agent':
+                    # Extract the summary and return it
+                    print(f"Chat history: \n --- \n {chr(10).join(conversation_history)} \n --- \n")
+                    
+                    response = AgentConversationResponse(
+                        wait_for_human=False,
+                        model_response=agent_prompt
+                    )
+                    
+                    return response
+                elif agent_name.lower() == 'user_agent':
+                    # If user_agent is called, we can ask the user for clarification
+                    
+                    response = AgentConversationResponse(
+                        wait_for_human=True,
+                        conversation_history=conversation_history
+                    )
+                    
+                    return response
+                
+                # Call the specified agent
+                agent_response = self._call_agent(agent_name, agent_prompt)
+                conversation_history.append(f"{agent_name}: {agent_response}")
+                
+                # Send agent response back to manager for next decision
+                manager_prompt = f"""
+                Original user request: {original_user_prompt}
+                
+                Conversation so far:
+                {chr(10).join(conversation_history)}
+                
+                Agent {agent_name} just responded with: {agent_response}
+                
+                What should happen next? Remember to use response_agent when you have enough information to respond to the user or when you cannot complete the request.
+                """
+                
+                manager_response = self.client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    config=types.GenerateContentConfig(
+                        system_instruction=self.manager_context),
+                    contents=manager_prompt
+                )
+                
+                current_message = manager_response.text
+                conversation_history.append(f"Manager: {current_message}")
+            
+            # If we exit the loop without calling response_agent, return a fallback
+            return AgentConversationResponse(
+                wait_for_human=False, 
+                model_response="I was unable to complete your request. The conversation exceeded the maximum number of iterations or encountered an error."
             )
-
-            current_message = manager_response.text
-            conversation_history.append(f"Manager: {current_message}")
-
-        # If we exit the loop without calling response_agent, return a fallback
-        return "I was unable to complete your request. The conversation exceeded the maximum number of iterations or encountered an error."
+            
+        except Exception as e:
+            # Return an error response if something goes wrong
+            return AgentConversationResponse(
+                wait_for_human=False,
+                model_response=f"An error occurred while continuing the conversation: {str(e)}"
+            )
 
     def _call_agent(self, name, prompt):
         """
