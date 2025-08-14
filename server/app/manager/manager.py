@@ -346,7 +346,7 @@ manager = Manager(
 #print(manager.user_chat("Create a document summarizing the other project docs."))
 
 #print(manager.user_chat("Create a document summarizing the other project docs related to apples."))
-print(manager.user_chat("Check my documents to see if anyone likes apples"))
+#print(manager.user_chat("Check my documents to see if anyone likes apples"))
 
 # Test direct creation
 # project_agent = ProjectAgent(

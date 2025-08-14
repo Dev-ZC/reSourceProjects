@@ -25,3 +25,8 @@ Note:
 
 * Agents themselves cant execute tools on their own if I want human in the loop
 (temp fix could just have manager send the user agent to verify then go through same user agent loop)
+
+Edge Cases:
+-Save entire project prior to starting agent conversation
+(if an edit to a doc occurs then the user wants to query it, we need
+to save the edit to the db prior to making the request)

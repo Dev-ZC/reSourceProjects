@@ -51,7 +51,7 @@ def get_manager(project_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/start", response_model=AgentConversationResponse)
+@router.post("/chat-start", response_model=AgentConversationResponse)
 async def start_chat(
     request: StartChatRequest = Body(...)
 ):
@@ -72,7 +72,7 @@ async def start_chat(
             model_response=f"Error starting chat: {str(e)}"
         )
 
-@router.post("/continue", response_model=AgentConversationResponse)
+@router.post("/chat-continue", response_model=AgentConversationResponse)
 async def continue_chat(
     request: ContinueChatRequest = Body(...)
 ):

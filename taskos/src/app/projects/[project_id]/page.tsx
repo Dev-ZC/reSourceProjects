@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect, FormEvent } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -13,7 +13,8 @@ import {
   NodeProps
 } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
-import ChatWindow from './components/chatWindow';
+import ChatWindow, { Message } from './components/chatWindow';
+import { useContinueChat } from '@/app/api/queries/chat';
  
 import '@xyflow/react/dist/style.css';
 import dynamic from 'next/dynamic';
@@ -107,9 +108,13 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isChatFocused, setIsChatFocused] = useState(false);
   const [isChatRendered, setIsChatRendered] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatBarRef = useRef<HTMLDivElement>(null);
+  const continueChatMutation = useContinueChat();
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -122,6 +127,54 @@ export default function App() {
       setTimeout(() => setIsChatOpen(true), 10); // Allow component to mount before animating
     }
     inputRef.current?.focus();
+  };
+
+  const handleSendMessage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      text: inputValue,
+      timestamp: new Date()
+    };
+
+    // Add user message to the chat
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+
+    try {
+      // Convert messages to an array of strings for the conversation history
+      const conversationHistory = [...messages, userMessage].map(msg => msg.text);
+      
+      const result = await continueChatMutation.mutateAsync({
+        conversation_history: conversationHistory,
+        project_id: '58b89576-ec2b-4d7c-aafd-2adb4b72d88e' // HARDCODED!!!!
+      });
+
+      if (result.model_response) {
+        const botMessage: Message = {
+          id: `bot-${Date.now()}`,
+          type: 'bot',
+          text: result.model_response,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        type: 'bot',
+        text: 'Sorry, there was an error processing your message. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
       const handleCloseChat = () => {
@@ -181,7 +234,13 @@ export default function App() {
           ref={chatWindowRef}
           className={`absolute bottom-28 left-1/2 h-[80%] -translate-x-1/2 w-[700px] transition-all duration-300 ease-in-out z-10 ${isChatOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
         >
-          {isChatRendered && <ChatWindow onClose={handleCloseChat} />}
+          {isChatRendered && (
+            <ChatWindow 
+              messages={messages}
+              isLoading={isLoading}
+              onClose={handleCloseChat} 
+            />
+          )}
         </div>
         <div
           id="chat-bar"
@@ -189,27 +248,51 @@ export default function App() {
           className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-all duration-200 z-20 ${isChatOpen ? 'scale-105' : ''}`}
           onClick={handleChatBarClick}
         >
-            <Input
-              ref={inputRef}
-              placeholder="Start chatting now..."
-              className={`w-[480px] h-12 border-0 placeholder:text-[#7C868D] pl-7 outline-0 transition-all duration-200 ${isChatFocused ? 'ring-2 ring-blue-400' : ''}`}
-              style={{ 
-                background: isChatFocused ? '#E8EBED' : '#D0D5D8', 
-                color: '#7C868D', 
-                boxShadow: '1px 5px 10px rgba(0,0,0,0.1)', 
-                outline: 'none', 
-                borderRadius: '15px',
-                transform: isChatFocused ? 'translateY(-2px)' : 'translateY(0)'
-              }}
-              onFocus={() => {
-                setIsChatFocused(true);
-                if (!isChatOpen) {
-                  setIsChatRendered(true);
-                  setTimeout(() => setIsChatOpen(true), 10);
-                }
-              }}
-              onBlur={() => setIsChatFocused(false)}
-            />
+            <form onSubmit={handleSendMessage} className="w-full">
+              <Input
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Start chatting now..."
+                className={`w-[480px] h-12 border-0 placeholder:text-[#7C868D] pl-7 pr-12 outline-0 transition-all duration-200 ${isChatFocused ? 'ring-2 ring-blue-400' : ''}`}
+                style={{ 
+                  background: isChatFocused ? '#E8EBED' : '#D0D5D8', 
+                  color: '#7C868D', 
+                  boxShadow: '1px 5px 10px rgba(0,0,0,0.1)', 
+                  outline: 'none', 
+                  borderRadius: '15px',
+                  transform: isChatFocused ? 'translateY(-2px)' : 'translateY(0)'
+                }}
+                onFocus={() => {
+                  setIsChatFocused(true);
+                  if (!isChatOpen) {
+                    setIsChatRendered(true);
+                    setTimeout(() => setIsChatOpen(true), 10);
+                  }
+                }}
+                onBlur={() => setIsChatFocused(false)}
+                disabled={isLoading}
+              />
+              <button 
+                type="submit" 
+                className="absolute right-5 top-1/2 -translate-y-[55%] text-[#7C868D] hover:text-blue-500 focus:outline-none cursor-pointer"
+                disabled={!inputValue.trim() || isLoading}
+              >
+                <svg 
+                  className="w-5 h-5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+                  />
+                </svg>
+              </button>
+            </form>
         </div>
     </div>
   );
