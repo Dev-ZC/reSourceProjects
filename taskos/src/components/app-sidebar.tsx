@@ -158,7 +158,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         />
         <SearchForm />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="no-scrollbar">
         {/* We create a SidebarGroup for each parent. */}
         {data.navMain.map((item) => (
           <SidebarGroup key={item.title}>

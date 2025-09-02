@@ -10,11 +10,14 @@ import {
   useEdgesState,
   addEdge,
   Connection,
-  NodeProps
+  NodeProps,
+  useReactFlow
 } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import ChatWindow, { Message } from './components/chatWindow';
 import { useContinueChat } from '@/app/api/queries/chat';
+import { useLoadFlow, useAutoSaveFlow } from '@/app/api/queries/flows';
+import { useParams } from 'next/navigation';
  
 import '@xyflow/react/dist/style.css';
 import dynamic from 'next/dynamic';
@@ -101,8 +104,17 @@ const initialNodes = [
 const initialEdges = [{ id: 'e1-2', source: '1', target: '2' }];
  
 export default function App() {
+  const params = useParams();
+  const projectId = params.project_id as string;
+  
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  
+  // Load flow data on mount
+  const { data: flowData, isLoading: isLoadingFlow } = useLoadFlow(projectId);
+  
+  // Auto-save functionality with 2-second debounce
+  const { autoSave, isSaving, saveError } = useAutoSaveFlow(projectId, 2000);
  
     
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -120,6 +132,31 @@ export default function App() {
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
+  
+  // Auto-save when nodes or edges change
+  useEffect(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      const flowState = {
+        nodes,
+        edges,
+        viewport: { x: 0, y: 0, zoom: 1 } // You can get actual viewport from useReactFlow if needed
+      };
+      autoSave(flowState);
+    }
+  }, [nodes, edges, autoSave]);
+  
+  // Load flow data when available
+  useEffect(() => {
+    if (flowData?.flow_state) {
+      const { nodes: loadedNodes, edges: loadedEdges } = flowData.flow_state;
+      if (loadedNodes && loadedNodes.length > 0) {
+        setNodes(loadedNodes);
+      }
+      if (loadedEdges && loadedEdges.length > 0) {
+        setEdges(loadedEdges);
+      }
+    }
+  }, [flowData, setNodes, setEdges]);
 
         const handleChatBarClick = () => {
     if (!isChatOpen) {
@@ -211,7 +248,18 @@ export default function App() {
   }, [isChatOpen]);
  
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div className="w-full h-full overflow-hidden">
+        {/* Auto-save status indicator */}
+        {isSaving && (
+          <div className="absolute top-4 right-4 z-30 bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
+            Saving...
+          </div>
+        )}
+        {saveError && (
+          <div className="absolute top-4 right-4 z-30 bg-red-500 text-white px-3 py-1 rounded-md text-sm">
+            Save failed: {saveError.message}
+          </div>
+        )}
         <ReactFlow
             nodes={nodes}
             edges={edges}

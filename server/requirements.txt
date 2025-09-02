@@ -2,11 +2,12 @@ annotated-types==0.7.0
 anyio==4.9.0
 click==8.2.1
 fastapi==0.115.13
+google-genai
 h11==0.16.0
 httptools==0.6.4
 idna==3.10
-pydantic==2.11.7
-pydantic_core==2.33.2
+pydantic>=2.4.0
+pydantic_core>=2.10.0
 python-dotenv==1.1.0
 PyYAML==6.0.2
 sniffio==1.3.1

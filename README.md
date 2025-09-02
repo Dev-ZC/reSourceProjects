@@ -30,3 +30,8 @@ Edge Cases:
 -Save entire project prior to starting agent conversation
 (if an edit to a doc occurs then the user wants to query it, we need
 to save the edit to the db prior to making the request)
+
+
+
+Production Checklist:
+- Change Clerk signup webhook url to production url in (user.create, user.delete, user.update)

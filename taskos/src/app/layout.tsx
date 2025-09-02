@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {isProjectsRoute ? (
             <SidebarProvider>
               <AppSidebar/>
-              <main className="relative h-full -ml-0.5 mr-0">
+              <main className="relative h-screen w-full overflow-hidden -ml-0.5 mr-0">
                 <SidebarTrigger className="absolute top-4 left-4 z-50" 
                   style={{
                     background: '#B4BDC3', 
