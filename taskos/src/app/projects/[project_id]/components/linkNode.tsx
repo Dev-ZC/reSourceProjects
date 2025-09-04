@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Node, NodeProps } from 'reactflow';
+import { useReactFlow } from '@xyflow/react';
+import NodeSettingsMenu from './NodeSettingsMenu';
 // Locally defined because the type may be missing from @types/react-resizable
 
 interface ResizeCallbackData {
@@ -91,21 +93,46 @@ if (typeof document !== 'undefined') {
 type LinkNodeData = {
   title: string;
   url: string;
-  isExpanded?: boolean;
 };
 
 type LinkNodeType = Node<LinkNodeData>;
 
 const LinkNode = (props: NodeProps<LinkNodeData>) => {
-  const { data } = props;
-  const { title, url, isExpanded = false } = data;
-  const [expanded, setExpanded] = useState(isExpanded);
+  const { setNodes } = useReactFlow();
+  const { data, id } = props;
+  const { title, url } = data;
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
+
+  // Handle settings save
+  const handleSettingsSave = (data: { title: string; url?: string }) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, title: data.title, url: data.url || node.data.url } }
+          : node
+      )
+    );
+  };
+
+  // Handle settings button click
+  const handleSettingsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSettingsPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
+    setShowSettings(true);
+  };
+
+  const [expanded, setExpanded] = useState(false);
   const MIN_WIDTH = 400;
-const MIN_HEIGHT = 300;
-const MAX_WIDTH = 1200;
-const MAX_HEIGHT = 900;
-const SIZE_STEP = 100;
-const [size, setSize] = useState({ width: 800, height: 600 });
+  const MIN_HEIGHT = 300;
+  const MAX_WIDTH = 1200;
+  const MAX_HEIGHT = 900;
+  const SIZE_STEP = 100;
+  const [size, setSize] = useState({ width: 800, height: 600 });
 
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -270,13 +297,9 @@ const [size, setSize] = useState({ width: 800, height: 600 });
       </div>
       
       {/* Settings Icon - appears on hover above the node */}
-      <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2">
+      <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 cursor-pointer">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // Add settings functionality here
-            console.log('Settings clicked for link:', title);
-          }}
+          onClick={handleSettingsClick}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
           title="Node settings"
         >
@@ -286,6 +309,17 @@ const [size, setSize] = useState({ width: 800, height: 600 });
           </svg>
         </button>
       </div>
+      
+      {/* Settings Menu */}
+      <NodeSettingsMenu
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        nodeType="link"
+        currentTitle={title}
+        currentUrl={url}
+        onSave={handleSettingsSave}
+        position={settingsPosition}
+      />
     </div>
   );
 };

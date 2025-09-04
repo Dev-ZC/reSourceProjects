@@ -5,6 +5,7 @@ import { Node, NodeProps } from 'reactflow';
 import { useReactFlow } from '@xyflow/react';
 import Image from 'next/image';
 import DocsNodeIcon from '../icons/docsNodeIcon.svg';
+import NodeSettingsMenu from './NodeSettingsMenu';
 
 // Define the data shape for our docs node
 type DocsNodeData = {
@@ -20,16 +21,40 @@ import 'quill/dist/quill.bubble.css';
 import 'quill/dist/quill.snow.css';
 
 const DocsNode = (props: NodeProps<DocsNodeData>) => {
-    const { setCenter, getNode, getViewport } = useReactFlow();
+    const { setCenter, getNode, getViewport, setNodes } = useReactFlow();
     const { data, id, selected } = props;
     const { title, createdAt, content: initialContent = '' } = data;
     const [expanded, setExpanded] = useState(false);
     const [content, setContent] = useState(initialContent);
     const [size, setSize] = useState({ width: 800, height: 600 });
+    const [showSettings, setShowSettings] = useState(false);
+    const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
     const expandedNodeRef = useRef<HTMLDivElement>(null);
     const collapsedNodeRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const quillRef = useRef<any>(null);
+
+  // Handle settings save
+  const handleSettingsSave = (data: { title: string }) => {
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, title: data.title } }
+          : node
+      )
+    );
+  };
+
+  // Handle settings button click
+  const handleSettingsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSettingsPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
+    setShowSettings(true);
+  };
 
   // Initialize Quill only when expanded
   useEffect(() => {
@@ -332,13 +357,9 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       </div>
       
       {/* Settings Icon - appears on hover above the node */}
-      <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2">
+      <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 cursor-pointer">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // Add settings functionality here
-            console.log('Settings clicked for document:', title);
-          }}
+          onClick={handleSettingsClick}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
           title="Node settings"
         >
@@ -348,6 +369,16 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
           </svg>
         </button>
       </div>
+      
+      {/* Settings Menu */}
+      <NodeSettingsMenu
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        nodeType="docs"
+        currentTitle={title}
+        onSave={handleSettingsSave}
+        position={settingsPosition}
+      />
     </div>
   );
 };
