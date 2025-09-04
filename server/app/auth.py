@@ -1,4 +1,5 @@
 import os
+import jwt
 from fastapi import HTTPException, Header, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
@@ -70,33 +71,66 @@ async def get_current_user(authorization: str = Header(None)) -> AuthenticatedUs
 
 async def get_current_user_from_cookies(request: Request) -> AuthenticatedUser:
     """
-    Extract and verify user from Clerk session cookies
+    Extract and verify user from Clerk session cookies using sessions.get
     """
     try:
-        # Get session token from cookies
-        session_token = request.cookies.get("__session")  # Clerk's default session cookie name
+        print(f"🔍 AUTH DEBUG: Available cookies: {list(request.cookies.keys())}")
         
-        if not session_token:
-            # Try alternative cookie names that Clerk might use
-            session_token = request.cookies.get("__clerk_session")
-            
-        if not session_token:
-            raise HTTPException(
-                status_code=401, 
-                detail="No session cookie found. Please log in."
-            )
+        # Try multiple session cookies in order of preference
+        session_cookies = ["__session", "__session_r9XL5wDY", "__session_SriKaHsP", "__clerk_session"]
+        clerk_user_id = None
+        last_error = None
         
-        # Verify the token with Clerk SDK
-        try:
-            # Use Clerk's JWT verification which handles all token types
-            jwt_payload = clerk.jwt_templates.verify_token(session_token)
-            clerk_user_id = jwt_payload.get("sub")
-            
-            if not clerk_user_id:
-                raise HTTPException(status_code=401, detail="Invalid token: no user ID found")
+        for cookie_name in session_cookies:
+            session_token = request.cookies.get(cookie_name)
+            if not session_token:
+                continue
                 
-        except Exception as e:
-            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
+            print(f"🔍 AUTH DEBUG: Trying {cookie_name} cookie")
+            
+            try:
+                # Extract session ID from JWT token
+                print(f"🔍 AUTH DEBUG: Attempting to decode JWT token (length: {len(session_token)})")
+                decoded_token = jwt.decode(session_token, options={"verify_signature": False})
+                session_id = decoded_token.get("sid")
+                print(f"🔍 AUTH DEBUG: Extracted session_id: {session_id}")
+                
+                if not session_id:
+                    print(f"❌ AUTH DEBUG: No session ID found in {cookie_name}")
+                    continue
+                
+                # Use Clerk sessions.get to retrieve session details
+                print(f"🔍 AUTH DEBUG: Calling clerk.sessions.get with session_id: {session_id}")
+                session_response = clerk.sessions.get(session_id=session_id)
+                print(f"🔍 AUTH DEBUG: Session response received: {bool(session_response)}")
+                
+                if session_response and session_response.user_id:
+                    clerk_user_id = session_response.user_id
+                    print(f"✅ AUTH DEBUG: Successfully got clerk_user_id: {clerk_user_id} from {cookie_name}")
+                    break
+                else:
+                    print(f"❌ AUTH DEBUG: Invalid session response from {cookie_name}")
+                    
+            except Exception as e:
+                print(f"❌ AUTH DEBUG: Session verification failed for {cookie_name}: {str(e)}")
+                last_error = str(e)
+                continue
+        
+        if not clerk_user_id:
+            print("🔄 AUTH DEBUG: All sessions expired, falling back to JWT verification")
+            # Fallback to JWT verification for expired sessions
+            try:
+                session_token = request.cookies.get("__session")
+                if session_token:
+                    jwt_payload = clerk.jwt_templates.verify_token(session_token)
+                    clerk_user_id = jwt_payload.get("sub")
+                    print(f"✅ AUTH DEBUG: JWT fallback successful, user_id: {clerk_user_id}")
+                else:
+                    raise Exception("No session token for JWT fallback")
+            except Exception as jwt_error:
+                print(f"❌ AUTH DEBUG: JWT fallback also failed: {str(jwt_error)}")
+                error_msg = f"All authentication methods failed. Sessions expired. Please log in again."
+                raise HTTPException(status_code=401, detail=error_msg)
         
         # Find corresponding Supabase user
         users_response = supabase.auth.admin.list_users()

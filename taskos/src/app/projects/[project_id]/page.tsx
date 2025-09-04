@@ -11,12 +11,14 @@ import {
   addEdge,
   Connection,
   NodeProps,
-  useReactFlow
+  useReactFlow,
+  Viewport
 } from '@xyflow/react';
 import { Input } from "@/components/ui/input";
 import ChatWindow, { Message } from './components/chatWindow';
+import NodeMiniBar from './components/NodeMiniBar';
 import { useContinueChat } from '@/app/api/queries/chat';
-import { useLoadFlow, useAutoSaveFlow } from '@/app/api/queries/flows';
+import { useAutoSaveFlow, useLoadFlow } from '@/app/api/queries/flows';
 import { useParams } from 'next/navigation';
  
 import '@xyflow/react/dist/style.css';
@@ -110,11 +112,24 @@ export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   
-  // Load flow data on mount
-  const { data: flowData, isLoading: isLoadingFlow } = useLoadFlow(projectId);
+  // Auto-save functionality
+  const { autoSave, isSaving } = useAutoSaveFlow(projectId);
+  const { data: loadedFlow } = useLoadFlow(projectId);
   
-  // Auto-save functionality with 2-second debounce
-  const { autoSave, isSaving, saveError } = useAutoSaveFlow(projectId, 2000);
+  // Refs to track current state for auto-save
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  const viewportRef = useRef({ x: 0, y: 0, zoom: 1 });
+  
+  // Update refs when state changes
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+  
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+  
  
     
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -127,36 +142,51 @@ export default function App() {
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatBarRef = useRef<HTMLDivElement>(null);
   const continueChatMutation = useContinueChat();
+  
+  // Load existing flow state on mount
+  useEffect(() => {
+    if (loadedFlow?.flow_state) {
+      setNodes(loadedFlow.flow_state.nodes || []);
+      setEdges(loadedFlow.flow_state.edges || []);
+    }
+  }, [loadedFlow, setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
+
+
+  // Close chat when clicking on pane
+  const onPaneClick = useCallback(() => {
+    handleCloseChat();
+  }, []);
+
+  // Handle node changes with auto-save
+  const handleNodesChange = useCallback((changes: any) => {
+    onNodesChange(changes);
+    
+    // Use setTimeout to ensure state is updated before auto-save
+    setTimeout(() => {
+      autoSave({
+        nodes: nodesRef.current,
+        edges: edgesRef.current,
+        viewport: viewportRef.current
+      });
+    }, 0);
+  }, [onNodesChange, autoSave]);
+
+  // Handle viewport changes with auto-save
+  const handleViewportChange = useCallback((viewport: Viewport) => {
+    viewportRef.current = viewport;
+    autoSave({
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+      viewport
+    });
+  }, [autoSave]);
   
-  // Auto-save when nodes or edges change
-  useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
-      const flowState = {
-        nodes,
-        edges,
-        viewport: { x: 0, y: 0, zoom: 1 } // You can get actual viewport from useReactFlow if needed
-      };
-      autoSave(flowState);
-    }
-  }, [nodes, edges, autoSave]);
   
-  // Load flow data when available
-  useEffect(() => {
-    if (flowData?.flow_state) {
-      const { nodes: loadedNodes, edges: loadedEdges } = flowData.flow_state;
-      if (loadedNodes && loadedNodes.length > 0) {
-        setNodes(loadedNodes);
-      }
-      if (loadedEdges && loadedEdges.length > 0) {
-        setEdges(loadedEdges);
-      }
-    }
-  }, [flowData, setNodes, setEdges]);
 
         const handleChatBarClick = () => {
     if (!isChatOpen) {
@@ -188,7 +218,7 @@ export default function App() {
       
       const result = await continueChatMutation.mutateAsync({
         conversation_history: conversationHistory,
-        project_id: '58b89576-ec2b-4d7c-aafd-2adb4b72d88e' // HARDCODED!!!!
+        project_id: projectId
       });
 
       if (result.model_response) {
@@ -249,24 +279,14 @@ export default function App() {
  
   return (
     <div className="w-full h-full overflow-hidden">
-        {/* Auto-save status indicator */}
-        {isSaving && (
-          <div className="absolute top-4 right-4 z-30 bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
-            Saving...
-          </div>
-        )}
-        {saveError && (
-          <div className="absolute top-4 right-4 z-30 bg-red-500 text-white px-3 py-1 rounded-md text-sm">
-            Save failed: {saveError.message}
-          </div>
-        )}
         <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
+            onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onPaneClick={handleCloseChat}
+            onViewportChange={handleViewportChange}
+            onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
             proOptions={{ hideAttribution: true }}
             noDragClassName='nodrag'
@@ -276,6 +296,7 @@ export default function App() {
         <Controls/>
         {/*<MiniMap />*/}
         <Background bgColor='#C4CACC' color='#C4CACC' gap={12} size={1} />
+        <NodeMiniBar />
         </ReactFlow>
         <div 
           id="chat-window"

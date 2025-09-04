@@ -77,7 +77,7 @@
   --sidebar-border: oklch(0.923 0.003 48.717);
   --sidebar-ring: oklch(0.709 0.01 56.259);
 
-  --darkBlueCustom: #B4BDC3;
+  --darkGrayCustom: #B4BDC3;
 }
 
 .dark {
@@ -150,7 +150,7 @@
 /* Control Panel Stylings */
 .react-flow__panel {
   border-radius: 5px;
-  background-color: var(--darkBlueCustom);
+  background-color: var(--darkGrayCustom);
 }
 
 .react-flow__controls {

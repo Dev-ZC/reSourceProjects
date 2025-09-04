@@ -77,12 +77,33 @@ export const useLoadFlow = (projectId: string) => {
 };
 
 // Debounced auto-save hook
-export const useAutoSaveFlow = (projectId: string, debounceMs: number = 2000) => {
+export const useAutoSaveFlow = (projectId: string, debounceMs: number = 4000) => {
   const queryClient = useQueryClient();
   const saveFlowMutation = useSaveFlow();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedStateRef = useRef<string | null>(null);
 
   const debouncedSave = useCallback((flowState: FlowState) => {
+    // Create a copy of flowState without DocsNode content to compare for changes
+    const flowStateForComparison = {
+      ...flowState,
+      nodes: flowState.nodes.map(node => {
+        if (node.type === 'docsNode') {
+          // Exclude content from comparison to prevent saves on content changes
+          const { content, ...nodeWithoutContent } = node.data || {};
+          return { ...node, data: nodeWithoutContent };
+        }
+        return node;
+      })
+    };
+    
+    const currentStateString = JSON.stringify(flowStateForComparison);
+    
+    // Don't save if the state (excluding DocsNode content) hasn't changed
+    if (lastSavedStateRef.current === currentStateString) {
+      return;
+    }
+    
     // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -90,10 +111,11 @@ export const useAutoSaveFlow = (projectId: string, debounceMs: number = 2000) =>
 
     // Set new timeout
     timeoutRef.current = setTimeout(() => {
+      lastSavedStateRef.current = currentStateString;
       saveFlowMutation.mutate(
         {
           project_id: projectId,
-          flow_state: flowState,
+          flow_state: flowState, // Save the full state including content
         },
         {
           onSuccess: (data) => {
