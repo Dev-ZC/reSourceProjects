@@ -344,7 +344,7 @@ export default function App() {
               />
               <button 
                 type="submit" 
-                className="absolute right-5 top-1/2 -translate-y-[55%] text-[#7C868D] hover:text-blue-500 focus:outline-none cursor-pointer"
+                className="absolute right-5 top-1/2 -translate-y-[55%] text-[#7C868D] hover:text-gray-800 hover:scale-110 focus:outline-none cursor-pointer transition-all duration-200 ease-in-out"
                 disabled={!inputValue.trim() || isLoading}
               >
                 <svg 
