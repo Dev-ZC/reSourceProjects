@@ -14,7 +14,7 @@ Note:
 * Add auto-saving functionality to docs
 * Implement saving for folders
 * Implement saving for links
-* Add drag and drop creation of nodes
+* Add drag and drop creation of nodes -- DONE
 * Implement folder functionality
 * Add creation of projects and switching between them
 * Add account management to the UI through clerk

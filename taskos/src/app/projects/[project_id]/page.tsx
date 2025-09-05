@@ -122,15 +122,11 @@ export default function App() {
     }, 0);
   }, [onNodesChange, autoSave]);
 
-  // Handle viewport changes with auto-save
+  // Handle viewport changes (no auto-save)
   const handleViewportChange = useCallback((viewport: Viewport) => {
     viewportRef.current = viewport;
-    autoSave({
-      nodes: nodesRef.current,
-      edges: edgesRef.current,
-      viewport
-    });
-  }, [autoSave]);
+    // Removed auto-save from viewport changes - only save on node movements
+  }, []);
 
   // Handle new doc node added via drag and drop
   const handleDocNodeAdded = useCallback((nodeId: string) => {
