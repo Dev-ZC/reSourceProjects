@@ -12,6 +12,7 @@ type DocsNodeData = {
   title: string;
   createdAt: string;
   content?: string;
+  isNew?: boolean;
 };
 
 type DocsNodeType = Node<DocsNodeData>;
@@ -23,7 +24,7 @@ import 'quill/dist/quill.snow.css';
 const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const { setCenter, getNode, getViewport, setNodes } = useReactFlow();
     const { data, id, selected } = props;
-    const { title, createdAt, content: initialContent = '' } = data;
+    const { title, createdAt, content: initialContent = '', isNew = false } = data;
     const [expanded, setExpanded] = useState(false);
     const [content, setContent] = useState(initialContent);
     const [size, setSize] = useState({ width: 800, height: 600 });
@@ -39,11 +40,23 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
-          ? { ...node, data: { ...node.data, title: data.title } }
+          ? { ...node, data: { ...node.data, title: data.title, isNew: false } }
           : node
       )
     );
   };
+
+  // Auto-open settings for new nodes
+  useEffect(() => {
+    if (isNew && collapsedNodeRef.current) {
+      const rect = collapsedNodeRef.current.getBoundingClientRect();
+      setSettingsPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2 - 10
+      });
+      setShowSettings(true);
+    }
+  }, [isNew]);
 
   // Handle settings button click
   const handleSettingsClick = (e: React.MouseEvent) => {

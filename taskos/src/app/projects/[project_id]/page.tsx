@@ -138,6 +138,7 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [newNodeId, setNewNodeId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const chatBarRef = useRef<HTMLDivElement>(null);
@@ -185,6 +186,15 @@ export default function App() {
       viewport
     });
   }, [autoSave]);
+
+  // Handle new doc node added via drag and drop
+  const handleDocNodeAdded = useCallback((nodeId: string) => {
+    setNewNodeId(nodeId);
+    // Clear the flag after a short delay to allow the node to render
+    setTimeout(() => {
+      setNewNodeId(null);
+    }, 100);
+  }, []);
   
   
 
@@ -296,7 +306,7 @@ export default function App() {
         <Controls/>
         {/*<MiniMap />*/}
         <Background bgColor='#C4CACC' color='#C4CACC' gap={12} size={1} />
-        <NodeMiniBar />
+        <NodeMiniBar onDocNodeAdded={handleDocNodeAdded} />
         </ReactFlow>
         <div 
           id="chat-window"
