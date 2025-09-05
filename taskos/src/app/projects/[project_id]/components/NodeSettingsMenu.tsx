@@ -84,11 +84,9 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
       ref={menuRef}
       className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-4 min-w-[300px]"
       style={{
-        left: position.x,
-        top: position.y,
-        transform: 'translate(-50%, -100%)',
-        marginTop: '-10px'
+        bottom: '250px',
       }}
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="space-y-4">
         <div>
@@ -101,7 +99,8 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:bg-gray-700 dark:text-white"
             placeholder="Enter name..."
           />
         </div>
@@ -116,7 +115,8 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 dark:bg-gray-700 dark:text-white"
               placeholder="https://..."
             />
           </div>
@@ -124,15 +124,21 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
 
         <div className="flex justify-end space-x-2 pt-2">
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
           >
             Cancel
           </button>
           <button
-            onClick={handleSave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
             disabled={!title.trim()}
-            className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Save
           </button>

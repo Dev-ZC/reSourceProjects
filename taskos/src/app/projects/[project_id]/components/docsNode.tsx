@@ -51,7 +51,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setSettingsPosition({
       x: rect.left + rect.width / 2,
-      y: rect.top
+      y: rect.top + rect.height / 2 - 10
     });
     setShowSettings(true);
   };
@@ -359,7 +359,10 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       {/* Settings Icon - appears on hover above the node */}
       <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 cursor-pointer">
         <button
-          onClick={handleSettingsClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSettingsClick(e);
+          }}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
           title="Node settings"
         >

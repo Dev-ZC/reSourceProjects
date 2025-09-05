@@ -8,6 +8,25 @@
     - When doc has no content dont send gemini query
 
 Note:
+* On settings save update the name in the db (and link for link node)
+* Implement doc embeddings table with chunking
+* Improve search algorithm to not solely rely on keywords
+* Add auto-saving functionality to docs
+* Implement saving for folders
+* Implement saving for links
+* Add drag and drop creation of nodes
+* Implement folder functionality
+* Add creation of projects and switching between them
+* Add account management to the UI through clerk
+* Add guardrails for conversation length with chat bot
+* Delete node functionality
+
+* Landing page with about and pricing
+* Implement payment system
+* Use composio to add extra tooling
+* Use claude mcp for extra tooling as well
+
+
 * !!!When folders are implemented include metdata in doc embeddings
     -created_at, created_by, parent_folder, doc_name, etc
 
