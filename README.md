@@ -20,6 +20,9 @@ Note:
 * Add account management to the UI through clerk
 * Add guardrails for conversation length with chat bot
 * Delete node functionality
+* Add images
+* Add pdfs uploads
+* Fetch user info on first load and propagate info to dashboard
 
 * Landing page with about and pricing
 * Implement payment system
