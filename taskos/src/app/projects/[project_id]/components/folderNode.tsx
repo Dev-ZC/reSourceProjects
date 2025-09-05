@@ -9,6 +9,7 @@ import NodeSettingsMenu from './NodeSettingsMenu';
 type FolderNodeData = {
   title: string;
   createdAt: string;
+  isNew?: boolean;
 };
 
 type FolderNodeType = Node<FolderNodeData>;
@@ -16,7 +17,7 @@ type FolderNodeType = Node<FolderNodeData>;
 const FolderNode = (props: NodeProps<FolderNodeData>) => {
   const { setNodes } = useReactFlow();
   const { data, id } = props;
-  const { title, createdAt } = data;
+  const { title, createdAt, isNew = false } = data;
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
 
@@ -25,11 +26,29 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
-          ? { ...node, data: { ...node.data, title: data.title } }
+          ? { ...node, data: { ...node.data, title: data.title, isNew: false } }
           : node
       )
     );
   };
+
+  // Auto-open settings for new nodes
+  React.useEffect(() => {
+    if (isNew) {
+      // Use a timeout to ensure the component is fully rendered
+      setTimeout(() => {
+        const folderElement = document.querySelector(`[data-id="${id}"]`);
+        if (folderElement) {
+          const rect = folderElement.getBoundingClientRect();
+          setSettingsPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2 - 10
+          });
+          setShowSettings(true);
+        }
+      }, 100);
+    }
+  }, [isNew, id]);
 
   // Handle settings button click
   const handleSettingsClick = (e: React.MouseEvent) => {

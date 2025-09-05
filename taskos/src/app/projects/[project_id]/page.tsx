@@ -47,63 +47,8 @@ const nodeTypes = {
   docsNode: DocsNode as any,
 };
  
-const initialNodes = [
-  {
-    id: 'folder-1',
-    type: 'folderNode',
-    position: { x: 200, y: 200 },
-    data: {
-      title: 'Project Alpha',
-      createdAt: '2025-06-27',
-    },
-  },
-  {
-    id: 'link-1',
-    type: 'linkNode',
-    position: { x: 500, y: 200 },
-    data: {
-      title: 'Example Website',
-      url: 'https://www.nytimes.com/',
-    },
-  },
-  {
-    id: 'link-2',
-    type: 'linkNode',
-    position: { x: 800, y: 250 },
-    data: {
-      title: 'Example Website',
-      url: 'https://docs.google.com/document/d/1r_cGl8PuoiJYjppm5GsTSj6v1BHZKr7vfqhnfkACgKA/edit?tab=t.0',
-    },
-  },
-  {
-    id: 'link-2',
-    type: 'linkNode',
-    position: { x: 600, y: 400 },
-    data: {
-      title: 'Example Website',
-      url: 'https://calendar.google.com/calendar/u/0/r?pli=1',
-    },
-  },
-  {
-    id: 'docs-1',
-    type: 'docsNode',
-    position: { x: 650, y: 220 },
-    data: {
-      title: 'Requirements Doc',
-      createdAt: '2025-07-20',
-    },
-  },
-  {
-    id: 'folder-2',
-    type: 'folderNode',
-    position: { x: 500, y: 300 },
-    data: {
-      title: 'Project Beta',
-      createdAt: '2025-07-01',
-    },
-  },
-];
-const initialEdges = [{ id: 'e1-2', source: '1', target: '2' }];
+const initialNodes: any[] = [];
+const initialEdges: any[] = [];
  
 export default function App() {
   const params = useParams();
@@ -189,6 +134,24 @@ export default function App() {
 
   // Handle new doc node added via drag and drop
   const handleDocNodeAdded = useCallback((nodeId: string) => {
+    setNewNodeId(nodeId);
+    // Clear the flag after a short delay to allow the node to render
+    setTimeout(() => {
+      setNewNodeId(null);
+    }, 100);
+  }, []);
+
+  // Handle new folder node added via drag and drop
+  const handleFolderNodeAdded = useCallback((nodeId: string) => {
+    setNewNodeId(nodeId);
+    // Clear the flag after a short delay to allow the node to render
+    setTimeout(() => {
+      setNewNodeId(null);
+    }, 100);
+  }, []);
+
+  // Handle new link node added via drag and drop
+  const handleLinkNodeAdded = useCallback((nodeId: string) => {
     setNewNodeId(nodeId);
     // Clear the flag after a short delay to allow the node to render
     setTimeout(() => {
@@ -306,7 +269,11 @@ export default function App() {
         <Controls/>
         {/*<MiniMap />*/}
         <Background bgColor='#C4CACC' color='#C4CACC' gap={12} size={1} />
-        <NodeMiniBar onDocNodeAdded={handleDocNodeAdded} />
+        <NodeMiniBar 
+          onDocNodeAdded={handleDocNodeAdded}
+          onFolderNodeAdded={handleFolderNodeAdded}
+          onLinkNodeAdded={handleLinkNodeAdded}
+        />
         </ReactFlow>
         <div 
           id="chat-window"

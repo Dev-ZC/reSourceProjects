@@ -93,6 +93,7 @@ if (typeof document !== 'undefined') {
 type LinkNodeData = {
   title: string;
   url: string;
+  isNew?: boolean;
 };
 
 type LinkNodeType = Node<LinkNodeData>;
@@ -100,20 +101,50 @@ type LinkNodeType = Node<LinkNodeData>;
 const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const { setNodes } = useReactFlow();
   const { data, id } = props;
-  const { title, url } = data;
+  const { title, url, isNew = false } = data;
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
+
+  // Helper function to safely get hostname from URL
+  const getHostname = (url: string): string => {
+    if (!url || url.trim() === '') {
+      return 'No URL set';
+    }
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return 'Invalid URL';
+    }
+  };
 
   // Handle settings save
   const handleSettingsSave = (data: { title: string; url?: string }) => {
     setNodes((nodes) =>
       nodes.map((node) =>
         node.id === id
-          ? { ...node, data: { ...node.data, title: data.title, url: data.url || node.data.url } }
+          ? { ...node, data: { ...node.data, title: data.title, url: data.url || node.data.url, isNew: false } }
           : node
       )
     );
   };
+
+  // Auto-open settings for new nodes
+  React.useEffect(() => {
+    if (isNew) {
+      // Use a timeout to ensure the component is fully rendered
+      setTimeout(() => {
+        const linkElement = document.querySelector(`[data-id="${id}"]`);
+        if (linkElement) {
+          const rect = linkElement.getBoundingClientRect();
+          setSettingsPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2 - 10
+          });
+          setShowSettings(true);
+        }
+      }, 100);
+    }
+  }, [isNew, id]);
 
   // Handle settings button click
   const handleSettingsClick = (e: React.MouseEvent) => {
@@ -292,7 +323,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
           {title}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate w-32">
-          {new URL(url).hostname}
+          {getHostname(url)}
         </div>
       </div>
       
