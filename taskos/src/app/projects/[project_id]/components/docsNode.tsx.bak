@@ -37,7 +37,6 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const collapsedNodeRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const quillRef = useRef<any>(null);
-    const isTypingRef = useRef(false);
 
     // Initialize autosave hook (only if docId exists)
     const { autoSave, isSaving, saveError, cleanup } = useAutoSaveDocument(docId || '', 3000);
@@ -103,81 +102,59 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     }
   }, [expanded, docId, content]);
 
-  // Initialize Quill only when expanded
+  // Initialize textarea when expanded (simpler approach that works correctly)
   useEffect(() => {
     if (expanded && editorRef.current && !quillRef.current) {
-      import('quill').then(QuillModule => {
-        const Quill = QuillModule.default;
+      // Create a simple textarea that works correctly
+      const textarea = document.createElement('textarea');
+      textarea.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        outline: none;
+        resize: none;
+        padding: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        direction: ltr;
+        text-align: left;
+        background: transparent;
+      `;
+      textarea.placeholder = 'Start writing...';
+      textarea.dir = 'ltr';
+      
+      if (content) {
+        // Convert HTML content to plain text for textarea
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        textarea.value = tempDiv.textContent || tempDiv.innerText || '';
+      }
+      
+      // Store reference for cleanup
+      (textarea as any).isSimpleEditor = true;
+      quillRef.current = textarea as any;
+      
+      editorRef.current.appendChild(textarea);
+      
+      // Handle text changes
+      const handleChange = () => {
+        const newContent = `<p>${textarea.value.replace(/\n/g, '</p><p>')}</p>`;
+        setContent(newContent);
         
-        // Create a fresh div for Quill
-        const quillContainer = document.createElement('div');
-        editorRef.current!.appendChild(quillContainer);
-        
-        // Add CSS fix for cursor positioning issue
-        const styleId = `quill-cursor-fix`;
-        let existingStyle = document.getElementById(styleId);
-        if (!existingStyle) {
-          const style = document.createElement('style');
-          style.id = styleId;
-          style.textContent = `
-            .ql-editor > * { 
-              cursor: initial !important;
-            }
-          `;
-          document.head.appendChild(style);
+        if (docId) {
+          console.log('Triggering autosave for docId:', docId);
+          autoSave(newContent);
         }
-        
-        quillRef.current = new Quill(quillContainer, {
-          theme: 'bubble',
-          bounds: editorRef.current,
-          placeholder: 'Start writing...',
-          modules: {
-            toolbar: [
-              ['bold', 'italic', 'underline', 'strike'],
-              ['blockquote', 'code-block'],
-              [{ 'header': 1 }, { 'header': 2 }],
-              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-              ['link']
-            ]
-          },
-          formats: [
-            'header',
-            'bold', 'italic', 'underline', 'strike',
-            'list',
-            'link', 'code-block',
-            'blockquote'
-          ]
-        });
-
-        if (content) {
-          console.log('Setting Quill content:', content);
-          quillRef.current.root.innerHTML = content;
-        } else {
-          console.log('No content to set in Quill editor');
-        }
-
-        quillRef.current.on('text-change', (delta: any, oldDelta: any, source: string) => {
-          // Only update content if the change came from user input
-          if (source === 'user') {
-            isTypingRef.current = true;
-            const newContent = quillRef.current.root.innerHTML;
-            setContent(newContent);
-            
-            console.log('Text changed, docId:', docId, 'content length:', newContent.length);
-            
-            if (docId) {
-              console.log('Triggering autosave for docId:', docId);
-              autoSave(newContent);
-            } else {
-              console.log('No docId provided, autosave skipped');
-            }
-            
-            // Reset typing flag after a short delay
-            setTimeout(() => {
-              isTypingRef.current = false;
-            }, 100);
-          }
-        });
+      };
+      
+      textarea.addEventListener('input', handleChange);
+      
+      // Store cleanup function
+      (textarea as any).cleanup = () => {
+        textarea.removeEventListener('input', handleChange);
+      };
+    }
 
         // Custom bubble positioning logic
         const tooltip = quillRef.current.theme.tooltip;
@@ -233,9 +210,9 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     };
   }, [expanded, cleanup]);
 
-  // Update Quill content when content state changes (but not during active editing)
+  // Update Quill content when content state changes
   useEffect(() => {
-    if (quillRef.current && content && !isTypingRef.current) {
+    if (quillRef.current && content) {
       console.log('Updating Quill with new content:', content);
       quillRef.current.root.innerHTML = content;
     }
