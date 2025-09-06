@@ -76,6 +76,23 @@ class DocsDataService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
+    def get_document(self, doc_id: str, user: AuthenticatedUser) -> Dict[str, Any]:
+        """
+        Get a document by its ID.
+        """
+        try:
+            response = self.supabase.table("docs").select("*").eq("id", doc_id).eq("user_id", user.supabase_user_id).execute()
+            
+            if not response.data:
+                raise HTTPException(status_code=404, detail="Document not found")
+                
+            return response.data[0]
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
     def delete_document(self, doc_id: str, user: AuthenticatedUser) -> bool:
         """
         Delete a document by its ID.

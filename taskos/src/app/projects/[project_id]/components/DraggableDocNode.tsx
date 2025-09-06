@@ -3,10 +3,8 @@
 import { useDraggable } from '@neodrag/react';
 import { useReactFlow, XYPosition } from '@xyflow/react';
 import { useCallback, useRef, useState } from 'react';
-
-// Simple ID generator for nodes
-let id = 0;
-const getId = () => `docsnode_${id++}`;
+import { useCreateDocumentNode } from '@/app/api/queries/docs';
+import { useParams } from 'next/navigation';
 
 interface DraggableDocNodeProps {
   className?: string;
@@ -34,7 +32,7 @@ export function DraggableDocNode({ className, children, onDrop }: DraggableDocNo
       setPosition({ x: 0, y: 0 });
       setIsDragging(false);
       
-      onDrop(getId(), {
+      onDrop(`temp_${Date.now()}`, {
         x: event.clientX,
         y: event.clientY,
       });
@@ -57,9 +55,12 @@ interface DraggableDocNodeButtonProps {
 
 export function DraggableDocNodeButton({ onNodeAdded }: DraggableDocNodeButtonProps) {
   const { setNodes, screenToFlowPosition } = useReactFlow();
+  const params = useParams();
+  const projectId = params.project_id as string;
+  const { createDocumentNode, isCreating, createError } = useCreateDocumentNode();
 
   const handleNodeDrop = useCallback(
-    (nodeId: string, screenPosition: XYPosition) => {
+    async (tempNodeId: string, screenPosition: XYPosition) => {
       const flow = document.querySelector('.react-flow');
       const flowRect = flow?.getBoundingClientRect();
       const isInFlow =
@@ -69,29 +70,31 @@ export function DraggableDocNodeButton({ onNodeAdded }: DraggableDocNodeButtonPr
         screenPosition.y >= flowRect.top &&
         screenPosition.y <= flowRect.bottom;
 
-      // Create a new docs node and add it to the flow
-      if (isInFlow) {
+      // Create a new docs node with backend-first approach
+      if (isInFlow && !isCreating) {
         const position = screenToFlowPosition(screenPosition);
 
-        const newNode = {
-          id: nodeId,
-          type: 'docsNode',
-          position,
-          data: { 
+        try {
+          // Create document in backend first and get the node data
+          const newNode = await createDocumentNode({
+            project_id: projectId,
+            position,
             title: 'New Document',
-            createdAt: new Date().toISOString().split('T')[0],
-            content: '',
-            isNew: true // Flag to indicate this is a new node that should open settings
-          },
-        };
+            content: ''
+          });
 
-        setNodes((nds) => nds.concat(newNode));
-        
-        // Notify parent that a new node was added so it can open settings
-        onNodeAdded(nodeId);
+          // Add the node with backend-generated ID to the flow
+          setNodes((nds) => nds.concat(newNode));
+          
+          // Notify parent that a new node was added
+          onNodeAdded(newNode.id);
+        } catch (error) {
+          console.error('Failed to create document node:', error);
+          // Optionally show user-friendly error message
+        }
       }
     },
-    [setNodes, screenToFlowPosition, onNodeAdded],
+    [setNodes, screenToFlowPosition, onNodeAdded, projectId, createDocumentNode, isCreating],
   );
 
   const SVG_WIDTH = "18";

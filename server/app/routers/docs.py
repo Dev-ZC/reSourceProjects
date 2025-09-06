@@ -77,6 +77,34 @@ async def update_document(
             detail=f"Failed to update document: {str(e)}"
         )
 
+@router.get("/get/{doc_id}")
+async def get_document(
+    doc_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user_from_cookies),
+    docs_service: DocsDataService = Depends(get_docs_data_service)
+):
+    """
+    Get a document by ID for the authenticated user
+    """
+    try:
+        result = docs_service.get_document(
+            doc_id=doc_id,
+            user=current_user
+        )
+        
+        return {
+            "message": "Document retrieved successfully",
+            "document": result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve document: {str(e)}"
+        )
+
 @router.delete("/delete/{doc_id}")
 async def delete_document(
     doc_id: str,

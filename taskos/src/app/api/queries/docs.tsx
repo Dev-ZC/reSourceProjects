@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useRef } from 'react';
 import { api } from '../client';
 
 // Types for document operations
@@ -68,6 +69,16 @@ export const useUpdateDocument = () => {
   });
 };
 
+// Get document query
+export const useGetDocument = (doc_id: string) => {
+  return useMutation<DocumentOperationResponse, Error, string>({
+    mutationFn: async (docId: string) => {
+      const response = await api.get<DocumentOperationResponse>(`/api/docs/get/${docId}`);
+      return response.data;
+    },
+  });
+};
+
 // Delete document mutation
 export const useDeleteDocument = () => {
   const queryClient = useQueryClient();
@@ -82,4 +93,122 @@ export const useDeleteDocument = () => {
       queryClient.removeQueries({ queryKey: ['document', doc_id] });
     },
   });
+};
+
+// Create document and return node data for React Flow
+export const useCreateDocumentNode = () => {
+  const createDocumentMutation = useCreateDocument();
+  
+  const createDocumentNode = async ({
+    project_id,
+    position,
+    title = 'Untitled Document',
+    content = ''
+  }: {
+    project_id: string;
+    position: { x: number; y: number };
+    title?: string;
+    content?: string;
+  }) => {
+    try {
+      const result = await createDocumentMutation.mutateAsync({
+        project_id,
+        doc_name: title,
+        content
+      });
+      
+      if (!result.document) {
+        throw new Error('No document returned from backend');
+      }
+      
+      // Return React Flow node data with backend-generated ID
+      return {
+        id: result.document.id, // Use backend ID as node ID
+        type: 'docsNode',
+        position,
+        data: {
+          title: result.document.doc_name,
+          createdAt: new Date().toLocaleDateString(),
+          content: result.document.content,
+          docId: result.document.id, // Same ID for consistency with autosave
+          isNew: true
+        }
+      };
+    } catch (error) {
+      console.error('Failed to create document node:', error);
+      throw error;
+    }
+  };
+  
+  return {
+    createDocumentNode,
+    isCreating: createDocumentMutation.isPending,
+    createError: createDocumentMutation.error
+  };
+};
+
+// Debounced auto-save hook for document content
+export const useAutoSaveDocument = (docId: string, debounceMs: number = 3000) => {
+  const queryClient = useQueryClient();
+  const updateDocumentMutation = useUpdateDocument();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedContentRef = useRef<string | null>(null);
+
+  const debouncedSave = useCallback((content: string) => {
+    console.log('debouncedSave called with docId:', docId, 'content length:', content.length);
+    
+    // Don't save if the content hasn't changed
+    if (lastSavedContentRef.current === content) {
+      console.log('Content unchanged, skipping save');
+      return;
+    }
+    
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      console.log('Cleared existing timeout');
+    }
+
+    console.log('Setting timeout for autosave in', debounceMs, 'ms');
+    // Set new timeout
+    timeoutRef.current = setTimeout(() => {
+      console.log('Executing autosave for docId:', docId);
+      lastSavedContentRef.current = content;
+      updateDocumentMutation.mutate(
+        {
+          doc_id: docId,
+          data: { content }
+        },
+        {
+          onSuccess: (data) => {
+            console.log('Autosave successful:', data);
+            // Update the query cache with the saved data
+            queryClient.setQueryData(['document', docId], (oldData: DocumentResponse | undefined) => ({
+              ...oldData,
+              ...data.document,
+              updated_at: new Date().toISOString(),
+            }));
+          },
+          onError: (error) => {
+            console.error('Autosave failed:', error);
+          },
+        }
+      );
+    }, debounceMs);
+  }, [docId, debounceMs, updateDocumentMutation, queryClient]);
+
+  // Cleanup function to clear timeout
+  const cleanup = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  return {
+    autoSave: debouncedSave,
+    isSaving: updateDocumentMutation.isPending,
+    saveError: updateDocumentMutation.error,
+    cleanup,
+  };
 };

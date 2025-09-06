@@ -15,6 +15,7 @@ Note:
 * Implement saving for folders
 * Implement saving for links
 * Add drag and drop creation of nodes -- DONE
+* Automatically create a home project for each user
 * Implement folder functionality
 * Add creation of projects and switching between them
 * Add account management to the UI through clerk

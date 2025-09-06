@@ -6,6 +6,7 @@ import { useReactFlow } from '@xyflow/react';
 import Image from 'next/image';
 import DocsNodeIcon from '../icons/docsNodeIcon.svg';
 import NodeSettingsMenu from './NodeSettingsMenu';
+import { useAutoSaveDocument, useGetDocument } from '../../../api/queries/docs';
 
 // Define the data shape for our docs node
 type DocsNodeData = {
@@ -13,6 +14,7 @@ type DocsNodeData = {
   createdAt: string;
   content?: string;
   isNew?: boolean;
+  docId?: string; // Add document ID for autosave
 };
 
 type DocsNodeType = Node<DocsNodeData>;
@@ -24,7 +26,7 @@ import 'quill/dist/quill.snow.css';
 const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const { setCenter, getNode, getViewport, setNodes } = useReactFlow();
     const { data, id, selected } = props;
-    const { title, createdAt, content: initialContent = '', isNew = false } = data;
+    const { title, createdAt, content: initialContent = '', isNew = false, docId } = data;
     const [expanded, setExpanded] = useState(false);
     const [content, setContent] = useState(initialContent);
     const [size, setSize] = useState({ width: 800, height: 600 });
@@ -34,6 +36,12 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const collapsedNodeRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const quillRef = useRef<any>(null);
+
+    // Initialize autosave hook (only if docId exists)
+    const { autoSave, isSaving, saveError, cleanup } = useAutoSaveDocument(docId || '', 3000);
+  
+    // Initialize get document hook
+    const getDocumentMutation = useGetDocument(docId || '');
 
   // Handle settings save
   const handleSettingsSave = (data: { title: string }) => {
@@ -69,6 +77,27 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     setShowSettings(true);
   };
 
+  // Fetch document content when expanded
+  useEffect(() => {
+    if (expanded && docId && !content) {
+      console.log('Fetching content for docId:', docId);
+      getDocumentMutation.mutate(docId, {
+        onSuccess: (data: any) => {
+          console.log('Document fetch success, received data:', data);
+          if (data.document?.content) {
+            console.log('Setting content:', data.document.content);
+            setContent(data.document.content);
+          } else {
+            console.log('No content found in document data');
+          }
+        },
+        onError: (error: any) => {
+          console.error('Failed to fetch document content:', error);
+        }
+      });
+    }
+  }, [expanded, docId, content]);
+
   // Initialize Quill only when expanded
   useEffect(() => {
     if (expanded && editorRef.current && !quillRef.current) {
@@ -102,11 +131,26 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
         });
   
         if (content) {
+          console.log('Setting Quill content:', content);
           quillRef.current.root.innerHTML = content;
+        } else {
+          console.log('No content to set in Quill editor');
         }
   
         quillRef.current.on('text-change', () => {
-          setContent(quillRef.current.root.innerHTML);
+          const newContent = quillRef.current.root.innerHTML;
+          setContent(newContent);
+          
+          // Debug logging
+          console.log('Text changed, docId:', docId, 'content length:', newContent.length);
+          
+          // Trigger autosave if docId exists
+          if (docId) {
+            console.log('Triggering autosave for docId:', docId);
+            autoSave(newContent);
+          } else {
+            console.log('No docId provided, autosave skipped');
+          }
         });
   
         // Custom bubble positioning logic
@@ -138,6 +182,14 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     }
   }, [expanded, content]);
 
+  // Update Quill content when content state changes
+  useEffect(() => {
+    if (quillRef.current && content) {
+      console.log('Updating Quill with new content:', content);
+      quillRef.current.root.innerHTML = content;
+    }
+  }, [content]);
+
   // Cleanup when collapsing or unmounting
   useEffect(() => {
     return () => {
@@ -160,8 +212,11 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       if (editorRef.current) {
         editorRef.current.innerHTML = '';
       }
+      
+      // Cleanup autosave timeout
+      cleanup();
     };
-  }, [expanded]);
+  }, [expanded, cleanup]);
 
   // Node size constraints
   const MIN_WIDTH = 500;
@@ -267,9 +322,28 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
             onPointerDown={e => e.stopPropagation()} 
             onClick={e => e.stopPropagation()}
           >
-          <h3 className="font-medium text-gray-800 dark:text-gray-100 truncate max-w-[60%]">
-            {title}
-          </h3>
+          <div className="flex items-center space-x-2 max-w-[60%]">
+            <h3 className="font-medium text-gray-800 dark:text-gray-100 truncate">
+              {title}
+            </h3>
+            {docId && isSaving && (
+              <div className="flex items-center space-x-1 text-xs text-blue-500">
+                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Saving...</span>
+              </div>
+            )}
+            {docId && saveError && (
+              <div className="flex items-center space-x-1 text-xs text-red-500" title={saveError.message}>
+                <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>Error</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={centerNode}
