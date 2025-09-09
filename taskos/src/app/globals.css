@@ -167,3 +167,9 @@
 .react-flow__controls-button svg {
   fill: #1B1917 !important;
 }
+
+/* User Avator Box Stylings */
+.cl-avatarBox {
+  width: 2.3rem;
+  height: 2.3rem;
+}

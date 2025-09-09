@@ -6,7 +6,7 @@ import { useReactFlow } from '@xyflow/react';
 import Image from 'next/image';
 import DocsNodeIcon from '../icons/docsNodeIcon.svg';
 import NodeSettingsMenu from './NodeSettingsMenu';
-import { useAutoSaveDocument, useGetDocument } from '../../../api/queries/docs';
+import { useAutoSaveDocument, useGetDocument, useUpdateDocument } from '../../../api/queries/docs';
 
 // Define the data shape for our docs node
 type DocsNodeData = {
@@ -44,16 +44,34 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
   
     // Initialize get document hook
     const getDocumentMutation = useGetDocument(docId || '');
+    const updateDocumentMutation = useUpdateDocument();
 
-  // Handle settings save
-  const handleSettingsSave = (data: { title: string }) => {
-    setNodes((nodes) =>
-      nodes.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, title: data.title, isNew: false } }
-          : node
-      )
-    );
+  // Handle settings save - backend-first approach
+  const handleSettingsSave = async (data: { title: string }) => {
+    if (!docId) {
+      console.error('No docId available for update');
+      return;
+    }
+
+    try {
+      // Update in backend first
+      await updateDocumentMutation.mutateAsync({
+        doc_id: docId,
+        data: { doc_name: data.title }
+      });
+
+      // Only update frontend after successful backend update
+      setNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === id
+            ? { ...node, data: { ...node.data, title: data.title, isNew: false } }
+            : node
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update document:', error);
+      // Optionally show user-friendly error message
+    }
   };
 
   // Auto-open settings for new nodes

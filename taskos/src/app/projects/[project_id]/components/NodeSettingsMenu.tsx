@@ -137,7 +137,7 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
               e.stopPropagation();
               handleSave();
             }}
-            disabled={!title.trim()}
+            disabled={!title || !title.trim()}
             className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Save

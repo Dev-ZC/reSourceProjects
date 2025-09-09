@@ -1,7 +1,6 @@
 import * as React from "react"
 
-import { SearchForm } from "@/components/search-form"
-import { VersionSwitcher } from "@/components/version-switcher"
+import { UserButton, useUser } from "@clerk/nextjs"
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +19,7 @@ const data = {
   versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
     {
-      title: "Getting Started",
+      title: "My Projects",
       url: "#",
       items: [
         {
@@ -148,15 +147,35 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useUser();
+
   return (
     <div className="dark">
     <Sidebar {...props}>
       <SidebarHeader>
-        <VersionSwitcher
-          versions={data.versions}
-          defaultVersion={data.versions[0]}
-        />
-        <SearchForm />
+        <div className="p-4 flex items-center justify-center gap-3 w-full hover:bg-gray-800 transition-colors rounded-lg cursor-pointer group">
+          <div className="flex-shrink-0 flex items-center">
+            <UserButton /> {/* Styled in globals.css */}
+          </div>
+          {user && (
+            <div 
+              className="flex flex-col text-sm text-left flex-1 min-w-0 justify-center"
+              onClick={(e) => {
+                e.preventDefault();
+                // Find the UserButton and trigger its click
+                const userButtonElement = e.currentTarget.parentElement?.querySelector('button[data-testid="userButton-trigger"]') || 
+                                        e.currentTarget.parentElement?.querySelector('[role="button"]') ||
+                                        e.currentTarget.parentElement?.querySelector('button');
+                if (userButtonElement) {
+                  (userButtonElement as HTMLElement).click();
+                }
+              }}
+            >
+              <span className="font-medium text-white group-hover:text-gray-100 truncate">{user.fullName || user.firstName}</span>
+              <span className="text-gray-400 group-hover:text-gray-300 truncate">{user.primaryEmailAddress?.emailAddress}</span>
+            </div>
+          )}
+        </div>
       </SidebarHeader>
       <SidebarContent className="no-scrollbar">
         {/* We create a SidebarGroup for each parent. */}

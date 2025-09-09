@@ -8,12 +8,12 @@
     - When doc has no content dont send gemini query
 
 Note:
-* On settings save update the name in the db (and link for link node)
+* On settings save update the name in the db (and link for link node) -- DONE
 * Implement doc embeddings table with chunking
 * Improve search algorithm to not solely rely on keywords
 * Add auto-saving functionality to docs -- DONE
 * Implement saving for folders
-* Implement saving for links
+* Implement saving for links -- DONE
 * Add drag and drop creation of nodes -- DONE
 * Automatically create a home project for each user
 * Implement folder functionality

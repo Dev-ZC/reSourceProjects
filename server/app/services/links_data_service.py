@@ -1,8 +1,12 @@
 from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException
 from supabase import Client
+import logging
 
 from ..auth import get_supabase_client, AuthenticatedUser
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class LinksDataService:
     """
@@ -24,22 +28,32 @@ class LinksDataService:
         Create a new link in the database.
         """
         try:
+            logger.info(f"Creating link in database for user {user.supabase_user_id}")
+            logger.debug(f"Link data: project_id={project_id}, url={url}, string={string}")
+            
             # Insert link into database
-            response = self.supabase.table("links").insert({
+            insert_data = {
                 "project_id": project_id,
                 "url": url,
-                "string": string,
+                "name": string,  # Changed from 'string' to 'name'
                 "user_id": user.supabase_user_id
-            }).execute()
+            }
+            logger.debug(f"Insert data: {insert_data}")
+            
+            response = self.supabase.table("links").insert(insert_data).execute()
+            logger.debug(f"Supabase response: {response}")
             
             if not response.data:
-                raise HTTPException(status_code=500, detail="Failed to create link")
+                logger.error(f"No data returned from Supabase. Response: {response}")
+                raise HTTPException(status_code=500, detail="Failed to create link - no data returned")
                 
+            logger.info(f"Link created successfully: {response.data[0]}")
             return response.data[0]
             
         except HTTPException:
             raise
         except Exception as e:
+            logger.error(f"Database error in create_link: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
     def update_link(
@@ -59,7 +73,7 @@ class LinksDataService:
                 update_data["url"] = url
                 
             if string is not None:
-                update_data["string"] = string
+                update_data["name"] = string
             
             if not update_data:
                 raise HTTPException(status_code=400, detail="No update data provided")

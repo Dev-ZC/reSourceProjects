@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Node, NodeProps } from 'reactflow';
 import { useReactFlow } from '@xyflow/react';
 import NodeSettingsMenu from './NodeSettingsMenu';
+import { useUpdateLink } from '../../../api/queries/links';
 // Locally defined because the type may be missing from @types/react-resizable
 
 interface ResizeCallbackData {
@@ -91,8 +92,10 @@ if (typeof document !== 'undefined') {
 
 // Define the data shape for our link node
 type LinkNodeData = {
-  title: string;
+  title?: string;
   url: string;
+  string: string;
+  linkId?: string; // Backend-generated ID
   isNew?: boolean;
 };
 
@@ -101,9 +104,10 @@ type LinkNodeType = Node<LinkNodeData>;
 const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const { setNodes } = useReactFlow();
   const { data, id } = props;
-  const { title, url, isNew = false } = data;
+  const { title = data.string, url, string, linkId, isNew = false } = data;
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
+  const updateLinkMutation = useUpdateLink();
 
   // Helper function to safely get hostname from URL
   const getHostname = (url: string): string => {
@@ -117,15 +121,35 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
     }
   };
 
-  // Handle settings save
-  const handleSettingsSave = (data: { title: string; url?: string }) => {
-    setNodes((nodes) =>
-      nodes.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...node.data, title: data.title, url: data.url || node.data.url, isNew: false } }
-          : node
-      )
-    );
+  // Handle settings save - backend-first approach
+  const handleSettingsSave = async (data: { title: string; url?: string }) => {
+    if (!linkId) {
+      console.error('No linkId available for update');
+      return;
+    }
+
+    try {
+      // Update in backend first
+      await updateLinkMutation.mutateAsync({
+        link_id: linkId,
+        data: { 
+          string: data.title,
+          url: data.url || url
+        }
+      });
+
+      // Only update frontend after successful backend update
+      setNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === id
+            ? { ...node, data: { ...node.data, string: data.title, url: data.url || node.data.url, isNew: false } }
+            : node
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update link:', error);
+      // Optionally show user-friendly error message
+    }
   };
 
   // Auto-open settings for new nodes
@@ -320,7 +344,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       </div>
       <div className="text-center">
         <div className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate w-full transition-colors duration-300 group-hover:text-gray-900 dark:group-hover:text-white">
-          {title}
+          {title || string}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate w-32">
           {getHostname(url)}
@@ -349,7 +373,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         nodeType="link"
-        currentTitle={title}
+        currentTitle={title || string || 'New Link'}
         currentUrl={url}
         onSave={handleSettingsSave}
         position={settingsPosition}

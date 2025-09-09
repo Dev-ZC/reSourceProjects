@@ -3,10 +3,8 @@
 import { useDraggable } from '@neodrag/react';
 import { useReactFlow, XYPosition } from '@xyflow/react';
 import { useCallback, useRef, useState } from 'react';
-
-// Simple ID generator for nodes
-let id = 0;
-const getId = () => `linknode_${id++}`;
+import { useCreateLinkNode } from '@/app/api/queries/links';
+import { useParams } from 'next/navigation';
 
 interface DraggableLinkNodeProps {
   className?: string;
@@ -34,7 +32,7 @@ export function DraggableLinkNode({ className, children, onDrop }: DraggableLink
       setPosition({ x: 0, y: 0 });
       setIsDragging(false);
       
-      onDrop(getId(), {
+      onDrop(`temp_${Date.now()}`, {
         x: event.clientX,
         y: event.clientY,
       });
@@ -57,9 +55,12 @@ interface DraggableLinkNodeButtonProps {
 
 export function DraggableLinkNodeButton({ onNodeAdded }: DraggableLinkNodeButtonProps) {
   const { setNodes, screenToFlowPosition } = useReactFlow();
+  const params = useParams();
+  const projectId = params.project_id as string;
+  const { createLinkNode, isCreating, createError } = useCreateLinkNode();
 
   const handleNodeDrop = useCallback(
-    (nodeId: string, screenPosition: XYPosition) => {
+    async (tempNodeId: string, screenPosition: XYPosition) => {
       const flow = document.querySelector('.react-flow');
       const flowRect = flow?.getBoundingClientRect();
       const isInFlow =
@@ -69,28 +70,31 @@ export function DraggableLinkNodeButton({ onNodeAdded }: DraggableLinkNodeButton
         screenPosition.y >= flowRect.top &&
         screenPosition.y <= flowRect.bottom;
 
-      // Create a new link node and add it to the flow
-      if (isInFlow) {
+      // Create a new link node with backend-first approach
+      if (isInFlow && !isCreating) {
         const position = screenToFlowPosition(screenPosition);
 
-        const newNode = {
-          id: nodeId,
-          type: 'linkNode',
-          position,
-          data: { 
-            title: 'New Link',
-            url: '',
-            isNew: true // Flag to indicate this is a new node that should open settings
-          },
-        };
+        try {
+          // Create link in backend first and get the node data
+          const newNode = await createLinkNode({
+            project_id: projectId,
+            position,
+            url: 'https://example.com',
+            string: 'New Link'
+          });
 
-        setNodes((nds) => nds.concat(newNode));
-        
-        // Notify parent that a new node was added so it can open settings
-        onNodeAdded(nodeId);
+          // Add the node with backend-generated ID to the flow
+          setNodes((nds) => nds.concat(newNode));
+          
+          // Notify parent that a new node was added
+          onNodeAdded(newNode.id);
+        } catch (error) {
+          console.error('Failed to create link node:', error);
+          // Optionally show user-friendly error message
+        }
       }
     },
-    [setNodes, screenToFlowPosition, onNodeAdded],
+    [setNodes, screenToFlowPosition, onNodeAdded, projectId, createLinkNode, isCreating],
   );
 
   const SVG_WIDTH = "18";
