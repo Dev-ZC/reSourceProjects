@@ -21,6 +21,7 @@ app.include_router(users_router)
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(flow_router, prefix="/api/flows", tags=["flows"])
 app.include_router(docs_router, prefix="/api/docs", tags=["docs"])
+app.include_router(links_router, prefix="/api/links", tags=["links"])
 
 @app.get("/")
 def read_root():

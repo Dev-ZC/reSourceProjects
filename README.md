@@ -11,7 +11,7 @@ Note:
 * On settings save update the name in the db (and link for link node)
 * Implement doc embeddings table with chunking
 * Improve search algorithm to not solely rely on keywords
-* Add auto-saving functionality to docs
+* Add auto-saving functionality to docs -- DONE
 * Implement saving for folders
 * Implement saving for links
 * Add drag and drop creation of nodes -- DONE

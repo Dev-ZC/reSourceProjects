@@ -128,7 +128,7 @@ export const useCreateDocumentNode = () => {
         position,
         data: {
           title: result.document.doc_name,
-          createdAt: new Date().toLocaleDateString(),
+          createdAt: new Date().toLocaleDateString().replace(/\//g, '-'),
           content: result.document.content,
           docId: result.document.id, // Same ID for consistency with autosave
           isNew: true
