@@ -4,6 +4,7 @@ from app.routers.users import router as users_router
 from app.routers.chat import router as chat_router
 from app.routers.flows import router as flow_router
 from app.routers.docs import router as docs_router
+from app.routers.links import router as links_router
 
 app = FastAPI()
 
