@@ -1,7 +1,6 @@
 from google import genai
 from google.genai import types
 from app.agents.slack_agent import SlackAgent
-from app.agents.project_agent import ProjectAgent
 from app.models.models import UserContext, AgentConversationResponse
 
 import os
@@ -20,11 +19,6 @@ class Manager:
         
         self.agents = {
             'slack_agent': SlackAgent(self.authenticated_user, self.user_context),
-            'project_agent': ProjectAgent(
-                authenticated_user=self.authenticated_user,
-                user_context=self.user_context,
-                supabase_session=supabase_session
-            ),
         }
     
     def user_chat(self, prompt) -> AgentConversationResponse:

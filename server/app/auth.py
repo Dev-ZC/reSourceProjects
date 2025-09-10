@@ -134,16 +134,31 @@ async def get_current_user_from_cookies(request: Request) -> AuthenticatedUser:
         
         # Find corresponding Supabase user
         users_response = supabase.auth.admin.list_users()
+        print(f"🔍 AUTH DEBUG: Looking for Clerk user ID {clerk_user_id} in Supabase users")
+        print(f"🔍 AUTH DEBUG: Found {len(users_response)} users in Supabase")
         
-        for user in users_response:
-            if user.user_metadata and user.user_metadata.get("clerk_user_id") == clerk_user_id:
-                return AuthenticatedUser(
-                    supabase_user_id=user.id,
-                    clerk_user_id=clerk_user_id,
-                    email=user.email,
-                    user_metadata=user.user_metadata
-                )
+        # Log all users for debugging
+        for i, user in enumerate(users_response):
+            print(f"🔍 AUTH DEBUG: Supabase User #{i+1}:")
+            print(f"🔍 AUTH DEBUG:   - ID: {user.id}")
+            print(f"🔍 AUTH DEBUG:   - Email: {user.email}")
+            print(f"🔍 AUTH DEBUG:   - Metadata: {user.user_metadata}")
+            
+            if user.user_metadata:
+                stored_clerk_id = user.user_metadata.get("clerk_user_id")
+                print(f"🔍 AUTH DEBUG:   - Stored Clerk ID: {stored_clerk_id}")
+                print(f"🔍 AUTH DEBUG:   - Matches current Clerk ID: {stored_clerk_id == clerk_user_id}")
+                
+                if stored_clerk_id == clerk_user_id:
+                    print(f"✅ AUTH DEBUG: Found matching user! Supabase ID: {user.id}, Clerk ID: {clerk_user_id}")
+                    return AuthenticatedUser(
+                        supabase_user_id=user.id,
+                        clerk_user_id=clerk_user_id,
+                        email=user.email,
+                        user_metadata=user.user_metadata
+                    )
         
+        print(f"❌ AUTH DEBUG: No matching user found in Supabase for Clerk ID: {clerk_user_id}")
         raise HTTPException(
             status_code=404, 
             detail="User not found in Supabase. Please contact support."

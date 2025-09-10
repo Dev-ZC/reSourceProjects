@@ -134,16 +134,36 @@ async def load_flow(
     """
     Load a flow state from the database for the authenticated user and project
     """
+    print(f"🔍 FLOWS DEBUG: load_flow called with project_id={project_id}")
+    print(f"🔍 FLOWS DEBUG: current_user={current_user.clerk_user_id if current_user else 'None'}")
+    print(f"🔍 FLOWS DEBUG: supabase_user_id={current_user.supabase_user_id if current_user else 'None'}")
+    
     try:
+        print(f"🔍 FLOWS DEBUG: Checking if flows table exists...")
+        try:
+            # Try to get table info first to check if table exists
+            tables = supabase.table("flows").select("*").limit(1).execute()
+            print(f"🔍 FLOWS DEBUG: Flows table check result: {tables}")
+        except Exception as table_error:
+            print(f"❌ FLOWS DEBUG: Error checking flows table: {table_error}")
+            print(f"❌ FLOWS DEBUG: Error type: {type(table_error)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: The flows table might not exist. Error: {str(table_error)}"
+            )
+        
         # Get the flow for this user and project
+        print(f"🔍 FLOWS DEBUG: Querying flow for user_id={current_user.supabase_user_id}, project_id={project_id}")
         response = supabase.table("flows").select("*").eq(
             "user_id", current_user.supabase_user_id
         ).eq(
             "project_id", str(project_id)
         ).execute()
+        print(f"🔍 FLOWS DEBUG: Query response: {response}")
         
         if response.data:
             flow = response.data[0]
+            print(f"✅ FLOWS DEBUG: Flow found with id={flow['id']}")
             return {
                 "message": "Flow loaded successfully",
                 "flow_id": flow["id"],
@@ -151,6 +171,7 @@ async def load_flow(
                 "flow_state": flow["flow_state"],
             }
         else:
+            print(f"ℹ️ FLOWS DEBUG: No flow found for this project, returning empty state")
             # Return empty flow state if no flow exists
             return {
                 "message": "No existing flow found, returning empty state",
@@ -161,7 +182,13 @@ async def load_flow(
                 }
             }
             
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"❌ FLOWS DEBUG: Exception in load_flow: {e}")
+        print(f"❌ FLOWS DEBUG: Exception type: {type(e)}")
+        import traceback
+        print(f"❌ FLOWS DEBUG: Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to load flow: {str(e)}"

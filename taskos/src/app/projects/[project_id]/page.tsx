@@ -19,7 +19,8 @@ import ChatWindow, { Message } from './components/chatWindow';
 import NodeMiniBar from './components/NodeMiniBar';
 import { useContinueChat } from '@/app/api/queries/chat';
 import { useAutoSaveFlow, useLoadFlow } from '@/app/api/queries/flows';
-import { useParams } from 'next/navigation';
+import { useGetProject } from '@/app/api/queries/projects';
+import { useParams, useRouter } from 'next/navigation';
  
 import '@xyflow/react/dist/style.css';
 import dynamic from 'next/dynamic';
@@ -52,14 +53,18 @@ const initialEdges: any[] = [];
  
 export default function App() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.project_id as string;
   
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   
+  // Check if project exists
+  const { data: projectData, isLoading: isLoadingProject, isError: isProjectError } = useGetProject(projectId);
+  
   // Auto-save functionality
   const { autoSave, isSaving } = useAutoSaveFlow(projectId);
-  const { data: loadedFlow, isLoading: isLoadingFlow } = useLoadFlow(projectId);
+  const { data: loadedFlow, isLoading: isLoadingFlow, isError: isFlowError } = useLoadFlow(projectId);
   
   // Refs to track current state for auto-save
   const nodesRef = useRef(nodes);
@@ -89,6 +94,15 @@ export default function App() {
   const chatBarRef = useRef<HTMLDivElement>(null);
   const continueChatMutation = useContinueChat();
   
+  // Handle project not found or error
+  useEffect(() => {
+    // If project data loaded but project doesn't exist, or there was an error loading the project
+    if ((!isLoadingProject && !projectData?.project) || isProjectError || isFlowError) {
+      console.log('Project not found or error, redirecting to projects page');
+      router.push('/projects');
+    }
+  }, [isLoadingProject, projectData, isProjectError, isFlowError, router]);
+
   // Load existing flow state on mount
   useEffect(() => {
     if (loadedFlow?.flow_state) {
@@ -273,7 +287,7 @@ export default function App() {
         </ReactFlow>
         
         {/* Loading overlay for canvas */}
-        {isLoadingFlow && (
+        {(isLoadingFlow || isLoadingProject) && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
             <div className="flex items-center space-x-2 text-gray-700 bg-white bg-opacity-90 px-4 py-2 rounded-lg shadow-lg">
               <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

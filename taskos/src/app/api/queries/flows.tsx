@@ -60,7 +60,8 @@ export const useLoadFlow = (projectId: string) => {
   return useQuery({
     queryKey: ['flow', projectId],
     queryFn: async (): Promise<LoadFlowResponse> => {
-      const response = await fetch(`/api/flows?project_id=${projectId}`, {
+      console.log('🔍 FLOW QUERY: Loading flow for project', projectId);
+      const response = await fetch(`/api/flows/load/${projectId}`, {
         credentials: 'include', // Include cookies for authentication
       });
 
