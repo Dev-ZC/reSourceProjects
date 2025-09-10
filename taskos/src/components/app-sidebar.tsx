@@ -157,7 +157,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <>
                     {item.items.map((subItem: any) => (
                       <SidebarMenuItem key={subItem.id}>
-                        <div className="flex items-center justify-between w-full group">
+                        <div className="flex items-center justify-between w-full group relative">
                           {editingProjectId === subItem.id ? (
                             <div className="flex items-center w-full gap-2">
                               <Input
@@ -196,28 +196,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                               </div>
                             </div>
                           ) : showDeleteConfirm === subItem.id ? (
-                            <div className="flex items-center w-full gap-2">
-                              <span className="text-sm text-red-400 flex-1">Delete project?</span>
-                              <div className="flex gap-1">
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700"
-                                  onClick={() => handleDeleteProject(subItem.id)}
-                                  disabled={isDeleting}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
-                                  onClick={() => setShowDeleteConfirm(null)}
-                                  disabled={isDeleting}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
+                            <div className="flex items-center w-full">
+                              <SidebarMenuButton 
+                                className="flex-1 justify-between pr-0 text-red-400 hover:text-red-300"
+                                onClick={(e) => e.preventDefault()}
+                              >
+                                <span>Delete project?</span>
+                                <div className="flex gap-1">
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700"
+                                    onClick={() => handleDeleteProject(subItem.id)}
+                                    disabled={isDeleting}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                    onClick={() => setShowDeleteConfirm(null)}
+                                    disabled={isDeleting}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </SidebarMenuButton>
                             </div>
                           ) : (
                             <>
