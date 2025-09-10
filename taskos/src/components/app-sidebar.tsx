@@ -3,7 +3,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { UserButton, useUser } from "@clerk/nextjs"
-import { useProjectsForNavigation, useCreateProject } from "@/app/api/queries/projects"
+import { useProjectsForNavigation, useCreateProject, useUpdateProject, useDeleteProject } from "@/app/api/queries/projects"
+import { Pencil, Trash2, MoreVertical, Check, X } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -30,12 +31,66 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
   const { projects, isLoading, error } = useProjectsForNavigation();
   const createProjectMutation = useCreateProject();
+  const updateProjectMutation = useUpdateProject();
+  const deleteProjectMutation = useDeleteProject();
   
   // State for new project creation
   const [showNewProjectInput, setShowNewProjectInput] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  
+  // State for project editing
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editedProjectName, setEditedProjectName] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // State for project deletion
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  // Handle project update
+  const handleUpdateProject = async (projectId: string) => {
+    if (!editedProjectName.trim() || isEditing) return;
+    
+    setIsEditing(true);
+    try {
+      await updateProjectMutation.mutateAsync({
+        project_id: projectId,
+        data: { project_name: editedProjectName.trim() }
+      });
+      
+      // Reset state
+      setEditingProjectId(null);
+      setEditedProjectName("");
+    } catch (error) {
+      console.error("Failed to update project:", error);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+  
+  // Handle project deletion
+  const handleDeleteProject = async (projectId: string) => {
+    if (isDeleting) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteProjectMutation.mutateAsync(projectId);
+      
+      // Reset state
+      setShowDeleteConfirm(null);
+      
+      // If we're on the deleted project's page, redirect to projects page
+      if (window.location.pathname.includes(projectId)) {
+        router.push('/projects');
+      }
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
   // Create navigation data with only user projects
   const navData = {
     navMain: [
@@ -101,18 +156,112 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 ) : (
                   <>
                     {item.items.map((subItem: any) => (
-                      <SidebarMenuItem key={subItem.title}>
-                        <SidebarMenuButton 
-                          asChild={item.title !== "My Projects"} 
-                          isActive={subItem.isActive}
-                          onClick={item.title === "My Projects" ? () => router.push(subItem.url) : undefined}
-                        >
-                          {item.title === "My Projects" ? (
-                            <span className="cursor-pointer">{subItem.title}</span>
+                      <SidebarMenuItem key={subItem.id}>
+                        <div className="flex items-center justify-between w-full group">
+                          {editingProjectId === subItem.id ? (
+                            <div className="flex items-center w-full gap-2">
+                              <Input
+                                value={editedProjectName}
+                                onChange={(e) => setEditedProjectName(e.target.value)}
+                                className="h-7 bg-gray-700 border-gray-600 text-white flex-1"
+                                disabled={isEditing}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleUpdateProject(subItem.id);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingProjectId(null);
+                                  }
+                                }}
+                              />
+                              <div className="flex gap-1">
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-7 w-7 text-green-400 hover:text-green-300 hover:bg-gray-700"
+                                  onClick={() => handleUpdateProject(subItem.id)}
+                                  disabled={isEditing || !editedProjectName.trim()}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                  onClick={() => setEditingProjectId(null)}
+                                  disabled={isEditing}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : showDeleteConfirm === subItem.id ? (
+                            <div className="flex items-center w-full gap-2">
+                              <span className="text-sm text-red-400 flex-1">Delete project?</span>
+                              <div className="flex gap-1">
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700"
+                                  onClick={() => handleDeleteProject(subItem.id)}
+                                  disabled={isDeleting}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                  onClick={() => setShowDeleteConfirm(null)}
+                                  disabled={isDeleting}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
                           ) : (
-                            <a href={subItem.url}>{subItem.title}</a>
+                            <>
+                              <SidebarMenuButton 
+                                asChild={item.title !== "My Projects"} 
+                                isActive={subItem.isActive}
+                                onClick={item.title === "My Projects" ? () => router.push(subItem.url) : undefined}
+                                className="flex-1 justify-start"
+                              >
+                                {item.title === "My Projects" ? (
+                                  <span className="cursor-pointer">{subItem.title}</span>
+                                ) : (
+                                  <a href={subItem.url}>{subItem.title}</a>
+                                )}
+                              </SidebarMenuButton>
+                              
+                              <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingProjectId(subItem.id);
+                                    setEditedProjectName(subItem.title);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-7 w-7 text-gray-400 hover:text-red-400 hover:bg-gray-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteConfirm(subItem.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </>
                           )}
-                        </SidebarMenuButton>
+                        </div>
                       </SidebarMenuItem>
                     ))}
                     
