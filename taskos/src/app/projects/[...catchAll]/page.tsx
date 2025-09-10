@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Loader2 } from 'lucide-react';
 
-// This catch-all route will handle any invalid project paths
-export default function CatchAllProjectPage() {
+function CatchAllContent() {
   const router = useRouter();
 
   useEffect(() => {
@@ -18,5 +18,14 @@ export default function CatchAllProjectPage() {
       <Loader2 className="h-8 w-8 animate-spin mb-4" />
       <p className="text-lg">Redirecting to your projects...</p>
     </div>
+  );
+}
+
+// This catch-all route will handle any invalid project paths
+export default function CatchAllProjectPage() {
+  return (
+    <AuthGuard>
+      <CatchAllContent />
+    </AuthGuard>
   );
 }

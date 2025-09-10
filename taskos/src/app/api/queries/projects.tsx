@@ -106,7 +106,7 @@ export const useGetProject = (project_id: string, enabled: boolean = true) => {
 };
 
 // Get all user projects query
-export const useGetUserProjects = () => {
+export const useGetUserProjects = (options?: { enabled?: boolean }) => {
   return useQuery<ProjectOperationResponse, Error>({
     queryKey: ['projects'],
     queryFn: async () => {
@@ -129,6 +129,11 @@ export const useGetUserProjects = () => {
       console.log('✅ PROJECTS QUERY: Success response:', data);
       return data;
     },
+    enabled: options?.enabled ?? true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
   });
 };
 

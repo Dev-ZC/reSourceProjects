@@ -3,11 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGetUserProjects, useCreateProject } from '@/app/api/queries/projects';
+import { AuthGuard, useAuthGuard } from '@/components/AuthGuard';
 import { Loader2 } from 'lucide-react';
 
-export default function DefaultProjectPage() {
+function ProjectPageContent() {
   const router = useRouter();
-  const { data, isLoading: isLoadingProjects } = useGetUserProjects();
+  const { isAuthenticated } = useAuthGuard();
+  
+  // Only make API calls if authenticated (which is guaranteed by AuthGuard, but adding extra safety)
+  const { data, isLoading: isLoadingProjects } = useGetUserProjects({
+    enabled: isAuthenticated
+  });
   const projects = data?.projects || [];
   const createProjectMutation = useCreateProject();
   const [isCreatingDefault, setIsCreatingDefault] = useState(false);
@@ -17,7 +23,7 @@ export default function DefaultProjectPage() {
 
   // Initialize the component and check session storage for ongoing operations
   useEffect(() => {
-    // Only run once on component mount
+    // Only run once on component mount (auth is already verified by AuthGuard)
     if (!hasInitialized) {
       // Check if we've already started a project creation process in this session
       const isCreatingInProgress = sessionStorage.getItem('isCreatingProject') === 'true';
@@ -81,7 +87,7 @@ export default function DefaultProjectPage() {
     }
 
     // Only run this effect if projects are loaded (either empty or with data)
-    // and we've initialized the component
+    // and we've initialized the component (auth is already verified by AuthGuard)
     if (!isLoadingProjects && !isRedirecting && hasInitialized) {
       handleProjectNavigation();
     }
@@ -106,5 +112,13 @@ export default function DefaultProjectPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function DefaultProjectPage() {
+  return (
+    <AuthGuard>
+      <ProjectPageContent />
+    </AuthGuard>
   );
 }
