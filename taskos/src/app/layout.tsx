@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const isProjectsRoute = pathname?.startsWith('/projects')
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>{/* Accounts for unexpected browser extension changes */}
       <body className="h-screen w-screen">
         <Providers>
           {isProjectsRoute ? (

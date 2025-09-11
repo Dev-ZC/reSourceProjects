@@ -42,10 +42,16 @@ const DocsNode = dynamic(
   { ssr: false }
 );
 
+const TextBoxNode = dynamic(
+  () => import('./components/textBoxNode'),
+  { ssr: false }
+);
+
 const nodeTypes = {
   folderNode: FolderNode as any,
   linkNode: LinkNode as any,
   docsNode: DocsNode as any,
+  textBoxNode: TextBoxNode as any,
 };
  
 const initialNodes: any[] = [];
@@ -168,6 +174,15 @@ export default function App() {
       setNewNodeId(null);
     }, 100);
   }, []);
+
+  // Handle new text box node added via drag and drop
+  const handleTextBoxNodeAdded = useCallback((nodeId: string) => {
+    setNewNodeId(nodeId);
+    // Clear the flag after a short delay to allow the node to render
+    setTimeout(() => {
+      setNewNodeId(null);
+    }, 100);
+  }, []);
   
   
 
@@ -283,6 +298,7 @@ export default function App() {
           onDocNodeAdded={handleDocNodeAdded}
           onFolderNodeAdded={handleFolderNodeAdded}
           onLinkNodeAdded={handleLinkNodeAdded}
+          onTextBoxNodeAdded={handleTextBoxNodeAdded}
         />
         </ReactFlow>
         

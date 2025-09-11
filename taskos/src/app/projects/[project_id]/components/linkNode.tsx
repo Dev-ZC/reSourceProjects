@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Node, NodeProps } from 'reactflow';
 import { useReactFlow } from '@xyflow/react';
 import NodeSettingsMenu from './NodeSettingsMenu';
-import { useUpdateLink } from '../../../api/queries/links';
+import { useUpdateLink, useDeleteLink } from '../../../api/queries/links';
 // Locally defined because the type may be missing from @types/react-resizable
 
 interface ResizeCallbackData {
@@ -108,6 +108,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
   const updateLinkMutation = useUpdateLink();
+  const deleteLinkMutation = useDeleteLink();
 
   // Helper function to safely get hostname from URL
   const getHostname = (url: string): string => {
@@ -148,6 +149,25 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       );
     } catch (error) {
       console.error('Failed to update link:', error);
+      // Optionally show user-friendly error message
+    }
+  };
+
+  // Handle delete - backend-first approach
+  const handleDelete = async () => {
+    if (!linkId) {
+      console.error('No linkId available for delete');
+      return;
+    }
+
+    try {
+      // Delete from backend first
+      await deleteLinkMutation.mutateAsync(linkId);
+
+      // Only remove from frontend after successful backend deletion
+      setNodes((nodes) => nodes.filter((node) => node.id !== id));
+    } catch (error) {
+      console.error('Failed to delete link:', error);
       // Optionally show user-friendly error message
     }
   };
@@ -358,7 +378,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
             e.stopPropagation();
             handleSettingsClick(e);
           }}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+          className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
           title="Node settings"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
@@ -376,6 +396,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
         currentTitle={title || string || 'New Link'}
         currentUrl={url}
         onSave={handleSettingsSave}
+        onDelete={handleDelete}
         position={settingsPosition}
       />
     </div>

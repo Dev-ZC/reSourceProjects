@@ -175,54 +175,51 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 }}
                               />
                               <div className="flex gap-1">
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-7 w-7 text-green-400 hover:text-green-300 hover:bg-gray-700 cursor-pointer"
-                                  onClick={() => handleUpdateProject(subItem.id)}
-                                  disabled={isEditing || !editedProjectName.trim()}
+                                <div 
+                                  className="inline-flex items-center justify-center h-7 w-7 text-green-400 hover:text-green-300 hover:bg-gray-700 cursor-pointer rounded-md transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateProject(subItem.id);
+                                  }}
                                 >
                                   <Check className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer"
-                                  onClick={() => setEditingProjectId(null)}
-                                  disabled={isEditing}
+                                </div>
+                                <div 
+                                  className="inline-flex items-center justify-center h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer rounded-md transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingProjectId(null);
+                                  }}
                                 >
                                   <X className="h-4 w-4" />
-                                </Button>
+                                </div>
                               </div>
                             </div>
                           ) : showDeleteConfirm === subItem.id ? (
                             <div className="flex items-center w-full">
-                              <SidebarMenuButton 
-                                className="flex-1 justify-between pr-0 text-red-400 hover:text-red-300"
-                                onClick={(e) => e.preventDefault()}
-                              >
+                              <div className="flex-1 flex items-center justify-between pr-0 text-red-400 hover:text-red-300 px-2 py-1.5 rounded-md">
                                 <span>Delete project?</span>
                                 <div className="flex gap-1">
-                                  <Button 
-                                    size="icon" 
-                                    variant="ghost" 
-                                    className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700 cursor-pointer"
-                                    onClick={() => handleDeleteProject(subItem.id)}
-                                    disabled={isDeleting}
+                                  <div 
+                                    className="inline-flex items-center justify-center h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700 cursor-pointer rounded-md transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteProject(subItem.id);
+                                    }}
                                   >
                                     <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    size="icon" 
-                                    variant="ghost" 
-                                    className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer"
-                                    onClick={() => setShowDeleteConfirm(null)}
-                                    disabled={isDeleting}
+                                  </div>
+                                  <div 
+                                    className="inline-flex items-center justify-center h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer rounded-md transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowDeleteConfirm(null);
+                                    }}
                                   >
                                     <X className="h-4 w-4" />
-                                  </Button>
+                                  </div>
                                 </div>
-                              </SidebarMenuButton>
+                              </div>
                             </div>
                           ) : (
                             <>
@@ -240,10 +237,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                               </SidebarMenuButton>
                               
                               <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer"
+                                <div 
+                                  className="inline-flex items-center justify-center h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer rounded-md transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setEditingProjectId(subItem.id);
@@ -251,18 +246,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                   }}
                                 >
                                   <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-red-400 hover:bg-gray-700 cursor-pointer"
+                                </div>
+                                <div 
+                                  className="inline-flex items-center justify-center h-7 w-7 text-gray-400 hover:text-red-400 hover:bg-gray-700 cursor-pointer rounded-md transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setShowDeleteConfirm(subItem.id);
                                   }}
                                 >
                                   <Trash2 className="h-3 w-3" />
-                                </Button>
+                                </div>
                               </div>
                             </>
                           )}
@@ -283,60 +276,57 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                               disabled={isCreating}
                             />
                             <div className="flex flex-col gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="default" 
-                                className="w-full cursor-pointer" 
-                                disabled={!newProjectName.trim() || isCreating}
-                                onClick={async () => {
-                                  if (!newProjectName.trim()) return;
-                                  
-                                  setIsCreating(true);
-                                  try {
-                                    const result = await createProjectMutation.mutateAsync({
-                                      project_name: newProjectName.trim()
-                                    });
-                                    
-                                    // Reset form
-                                    setNewProjectName("");
-                                    setShowNewProjectInput(false);
-                                    
-                                    // Navigate to the new project if created successfully
-                                    if (result?.project?.id) {
-                                      router.push(`/projects/${result.project.id}`);
+                              <div 
+                                className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md cursor-pointer transition-colors disabled:opacity-50"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (newProjectName.trim() && !isCreating) {
+                                    try {
+                                      const result = await createProjectMutation.mutateAsync({
+                                        project_name: newProjectName.trim()
+                                      });
+                                      
+                                      if (result?.project?.id) {
+                                        // Navigate to the new project
+                                        router.push(`/projects/${result.project.id}`);
+                                        
+                                        // Reset form state
+                                        setNewProjectName("");
+                                        setShowNewProjectInput(false);
+                                      }
+                                    } catch (error) {
+                                      console.error("Failed to create project:", error);
                                     }
-                                  } catch (error) {
-                                    console.error("Failed to create project:", error);
-                                  } finally {
-                                    setIsCreating(false);
                                   }
                                 }}
                               >
                                 {isCreating ? "Creating..." : "Create"}
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="w-full cursor-pointer" 
-                                onClick={() => {
-                                  setNewProjectName("");
-                                  setShowNewProjectInput(false);
+                              </div>
+                              <div 
+                                className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-gray-300 border border-gray-600 hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isCreating) {
+                                    setShowNewProjectInput(false);
+                                    setNewProjectName("");
+                                  }
                                 }}
-                                disabled={isCreating}
                               >
                                 Cancel
-                              </Button>
+                              </div>
                             </div>
                           </div>
                         ) : (
-                          <Button 
-                            variant="ghost" 
-                            className="w-full flex items-center justify-start gap-2 text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer"
-                            onClick={() => setShowNewProjectInput(true)}
+                          <div 
+                            className="w-full flex items-center justify-start gap-2 text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer px-3 py-2 rounded-md transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowNewProjectInput(true);
+                            }}
                           >
                             <PlusCircle size={16} />
                             <span>Create New Project</span>
-                          </Button>
+                          </div>
                         )}
                       </SidebarMenuItem>
                     )}

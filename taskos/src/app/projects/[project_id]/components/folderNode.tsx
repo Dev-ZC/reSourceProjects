@@ -32,6 +32,11 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
     );
   };
 
+  // Handle delete - frontend-only for folders
+  const handleDelete = () => {
+    setNodes((nodes) => nodes.filter((node) => node.id !== id));
+  };
+
   // Auto-open settings for new nodes
   React.useEffect(() => {
     if (isNew) {
@@ -93,7 +98,7 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
             e.stopPropagation();
             handleSettingsClick(e);
           }}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+          className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
           title="Node settings"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
@@ -110,6 +115,7 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
         nodeType="folder"
         currentTitle={title}
         onSave={handleSettingsSave}
+        onDelete={handleDelete}
         position={settingsPosition}
       />
     </div>

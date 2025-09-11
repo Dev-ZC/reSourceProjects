@@ -4,17 +4,20 @@ import React from 'react';
 import { DraggableDocNodeButton } from './DraggableDocNode';
 import { DraggableFolderNodeButton } from './DraggableFolderNode';
 import { DraggableLinkNodeButton } from './DraggableLinkNode';
+import { DraggableTextBoxNodeButton } from './DraggableTextBoxNode';
 
 interface NodeMiniBarProps {
   onDocNodeAdded?: (nodeId: string) => void;
   onFolderNodeAdded?: (nodeId: string) => void;
   onLinkNodeAdded?: (nodeId: string) => void;
+  onTextBoxNodeAdded?: (nodeId: string) => void;
 }
 
 export default function NodeMiniBar({ 
   onDocNodeAdded, 
   onFolderNodeAdded, 
-  onLinkNodeAdded 
+  onLinkNodeAdded,
+  onTextBoxNodeAdded 
 }: NodeMiniBarProps) {
   return (
     <div 
@@ -39,6 +42,13 @@ export default function NodeMiniBar({
       <div title="Folder Node (Drag & Drop)">
         <DraggableFolderNodeButton 
           onNodeAdded={onFolderNodeAdded || (() => {})}
+        />
+      </div>
+      
+      {/* Draggable Text Box Node */}
+      <div title="Text Box Node (Drag & Drop)">
+        <DraggableTextBoxNodeButton 
+          onNodeAdded={onTextBoxNodeAdded || (() => {})}
         />
       </div>
     </div>

@@ -7,6 +7,7 @@ interface NodeSettingsMenuProps {
   currentTitle: string;
   currentUrl?: string;
   onSave: (data: { title: string; url?: string }) => void;
+  onDelete?: () => void;
   position: { x: number; y: number };
 }
 
@@ -17,6 +18,7 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
   currentTitle,
   currentUrl,
   onSave,
+  onDelete,
   position
 }) => {
   const [title, setTitle] = useState(currentTitle);
@@ -122,26 +124,40 @@ const NodeSettingsMenu: React.FC<NodeSettingsMenuProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end space-x-2 pt-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave();
-            }}
-            disabled={!title || !title.trim()}
-            className="px-3 py-1.5 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Save
-          </button>
+        <div className="flex justify-between pt-2">
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+                onClose();
+              }}
+              className="cursor-pointer px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+            >
+              Delete
+            </button>
+          )}
+          <div className="flex space-x-2 ml-auto">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="cursor-pointer px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
+              disabled={!title || !title.trim()}
+              className="cursor-pointer px-3 py-1.5 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>

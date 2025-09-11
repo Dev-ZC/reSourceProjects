@@ -12,7 +12,7 @@ Note:
 * Implement doc embeddings table with chunking
 * Improve search algorithm to not solely rely on keywords
 * Add auto-saving functionality to docs -- DONE
-* Implement saving for folders
+* Implement saving for folders backend
 * Implement saving for links -- DONE
 * Add drag and drop creation of nodes -- DONE
 * Automatically create a home project for each user -- DONE
@@ -20,7 +20,7 @@ Note:
 * Add creation of projects and switching between them -- DONE
 * Add account management to the UI through clerk -- DONE
 * Add guardrails for conversation length with chat bot
-* Delete node functionality
+* Delete node functionality -- DONE
 * Add images!!
 * Add pdfs uploads!!
 * Fetch user info on first load and propagate info to dashboard -- DONE
@@ -32,6 +32,14 @@ Note:
 * Use composio to add extra tooling
 * Use claude mcp for extra tooling as well
 
+Quality of Life:
+* Re-open already opened windows on page load
+* Chat can make changes to board
+* Links found through websearch can be added to board via ui button
+* Include meta data of all nodes in pinecone (created_at, last_updated)
+* Add tools to claude
+* Images, pdfs, text blocks
+* When a node window opens it should render above the other nodes (at least initially)
 
 * !!!When folders are implemented include metdata in doc embeddings
     -created_at, created_by, parent_folder, doc_name, etc
@@ -60,3 +68,4 @@ to save the edit to the db prior to making the request)
 
 Production Checklist:
 - Change Clerk signup webhook url to production url in (user.create, user.delete, user.update)
+- Remove or suppress all the console logs

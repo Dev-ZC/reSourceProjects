@@ -6,7 +6,7 @@ import { useReactFlow } from '@xyflow/react';
 import Image from 'next/image';
 import DocsNodeIcon from '../icons/docsNodeIcon.svg';
 import NodeSettingsMenu from './NodeSettingsMenu';
-import { useAutoSaveDocument, useGetDocument, useUpdateDocument } from '../../../api/queries/docs';
+import { useAutoSaveDocument, useGetDocument, useUpdateDocument, useDeleteDocument } from '../../../api/queries/docs';
 
 // Define the data shape for our docs node
 type DocsNodeData = {
@@ -45,6 +45,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     // Initialize get document hook
     const getDocumentMutation = useGetDocument(docId || '');
     const updateDocumentMutation = useUpdateDocument();
+    const deleteDocumentMutation = useDeleteDocument();
 
   // Handle settings save - backend-first approach
   const handleSettingsSave = async (data: { title: string }) => {
@@ -70,6 +71,25 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       );
     } catch (error) {
       console.error('Failed to update document:', error);
+      // Optionally show user-friendly error message
+    }
+  };
+
+  // Handle delete - backend-first approach
+  const handleDelete = async () => {
+    if (!docId) {
+      console.error('No docId available for delete');
+      return;
+    }
+
+    try {
+      // Delete from backend first
+      await deleteDocumentMutation.mutateAsync(docId);
+
+      // Only remove from frontend after successful backend deletion
+      setNodes((nodes) => nodes.filter((node) => node.id !== id));
+    } catch (error) {
+      console.error('Failed to delete document:', error);
       // Optionally show user-friendly error message
     }
   };
@@ -537,7 +557,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
             e.stopPropagation();
             handleSettingsClick(e);
           }}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+          className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
           title="Node settings"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
@@ -554,6 +574,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
         nodeType="docs"
         currentTitle={title}
         onSave={handleSettingsSave}
+        onDelete={handleDelete}
         position={settingsPosition}
       />
     </div>
