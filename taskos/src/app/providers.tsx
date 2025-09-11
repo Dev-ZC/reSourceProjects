@@ -15,7 +15,11 @@ export function Providers({ children }: { children: ReactNode }) {
   }));
 
   return (
-    <ClerkProvider>
+    <ClerkProvider 
+      afterSignOutUrl="/login"
+      signInFallbackRedirectUrl="/projects"
+      signUpFallbackRedirectUrl="/projects"
+    >
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

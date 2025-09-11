@@ -178,7 +178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <Button 
                                   size="icon" 
                                   variant="ghost" 
-                                  className="h-7 w-7 text-green-400 hover:text-green-300 hover:bg-gray-700"
+                                  className="h-7 w-7 text-green-400 hover:text-green-300 hover:bg-gray-700 cursor-pointer"
                                   onClick={() => handleUpdateProject(subItem.id)}
                                   disabled={isEditing || !editedProjectName.trim()}
                                 >
@@ -187,7 +187,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <Button 
                                   size="icon" 
                                   variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer"
                                   onClick={() => setEditingProjectId(null)}
                                   disabled={isEditing}
                                 >
@@ -206,7 +206,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                   <Button 
                                     size="icon" 
                                     variant="ghost" 
-                                    className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700"
+                                    className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-gray-700 cursor-pointer"
                                     onClick={() => handleDeleteProject(subItem.id)}
                                     disabled={isDeleting}
                                   >
@@ -215,7 +215,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                   <Button 
                                     size="icon" 
                                     variant="ghost" 
-                                    className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                    className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer"
                                     onClick={() => setShowDeleteConfirm(null)}
                                     disabled={isDeleting}
                                   >
@@ -243,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <Button 
                                   size="icon" 
                                   variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                                  className="h-7 w-7 text-gray-400 hover:text-gray-300 hover:bg-gray-700 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setEditingProjectId(subItem.id);
@@ -255,7 +255,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <Button 
                                   size="icon" 
                                   variant="ghost" 
-                                  className="h-7 w-7 text-gray-400 hover:text-red-400 hover:bg-gray-700"
+                                  className="h-7 w-7 text-gray-400 hover:text-red-400 hover:bg-gray-700 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setShowDeleteConfirm(subItem.id);

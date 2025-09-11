@@ -10,10 +10,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isSignedIn) {
-      router.push('/projects/123');
+      router.push('/projects');
     } else {
       // Redirect to Clerk's hosted sign-in page with redirect URL
-      window.location.href = "https://immortal-turkey-12.accounts.dev/sign-in?redirect_url=" + encodeURIComponent("http://localhost:3000/projects/123");
+      window.location.href = "https://immortal-turkey-12.accounts.dev/sign-in?redirect_url=" + encodeURIComponent("http://localhost:3000/projects");
     }
   }, [isSignedIn, router]);
 

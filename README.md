@@ -15,15 +15,17 @@ Note:
 * Implement saving for folders
 * Implement saving for links -- DONE
 * Add drag and drop creation of nodes -- DONE
-* Automatically create a home project for each user
-* Implement folder functionality
-* Add creation of projects and switching between them
-* Add account management to the UI through clerk
+* Automatically create a home project for each user -- DONE
+* Implement folder functionality -- DONE
+* Add creation of projects and switching between them -- DONE
+* Add account management to the UI through clerk -- DONE
 * Add guardrails for conversation length with chat bot
 * Delete node functionality
-* Add images
-* Add pdfs uploads
-* Fetch user info on first load and propagate info to dashboard
+* Add images!!
+* Add pdfs uploads!!
+* Fetch user info on first load and propagate info to dashboard -- DONE
+* Allow users to embed youtube videos
+* Allow user to embed google docs, presentations, etc (and open in window)
 
 * Landing page with about and pricing
 * Implement payment system
