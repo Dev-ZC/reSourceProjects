@@ -21,6 +21,7 @@ import { useContinueChat } from '@/app/api/queries/chat';
 import { useAutoSaveFlow, useLoadFlow } from '@/app/api/queries/flows';
 import { useGetProject } from '@/app/api/queries/projects';
 import { useParams, useRouter } from 'next/navigation';
+import { NodeStateProvider } from './contexts/NodeStateContext';
  
 import '@xyflow/react/dist/style.css';
 import dynamic from 'next/dynamic';
@@ -77,6 +78,9 @@ export default function App() {
   const edgesRef = useRef(edges);
   const viewportRef = useRef({ x: 0, y: 0, zoom: 1 });
   
+  // Node states for persistence
+  const [nodeStates, setNodeStates] = useState<{ [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number } } }>({});
+  
   // Update refs when state changes
   useEffect(() => {
     nodesRef.current = nodes;
@@ -114,6 +118,7 @@ export default function App() {
     if (loadedFlow?.flow_state) {
       setNodes(loadedFlow.flow_state.nodes || []);
       setEdges(loadedFlow.flow_state.edges || []);
+      setNodeStates(loadedFlow.flow_state.nodeStates || {});
     }
   }, [loadedFlow, setNodes, setEdges]);
 
@@ -137,10 +142,26 @@ export default function App() {
       autoSave({
         nodes: nodesRef.current,
         edges: edgesRef.current,
-        viewport: viewportRef.current
+        viewport: viewportRef.current,
+        nodeStates: nodeStates
       });
     }, 0);
-  }, [onNodesChange, autoSave]);
+  }, [onNodesChange, autoSave, nodeStates]);
+
+  // Handle node states change with auto-save
+  const handleNodeStatesChange = useCallback((newNodeStates: { [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number } } }) => {
+    setNodeStates(newNodeStates);
+    
+    // Auto-save the updated flow state including node states
+    setTimeout(() => {
+      autoSave({
+        nodes: nodesRef.current,
+        edges: edgesRef.current,
+        viewport: viewportRef.current,
+        nodeStates: newNodeStates
+      });
+    }, 0);
+  }, [autoSave]);
 
   // Handle viewport changes (no auto-save)
   const handleViewportChange = useCallback((viewport: Viewport) => {
@@ -276,7 +297,8 @@ export default function App() {
   }, [isChatOpen]);
  
   return (
-    <div className="w-full h-full overflow-hidden relative">
+    <NodeStateProvider nodeStates={nodeStates} onNodeStatesChange={handleNodeStatesChange}>
+      <div className="w-full h-full overflow-hidden relative">
         <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -379,6 +401,7 @@ export default function App() {
               </button>
             </form>
         </div>
-    </div>
+      </div>
+    </NodeStateProvider>
   );
 }

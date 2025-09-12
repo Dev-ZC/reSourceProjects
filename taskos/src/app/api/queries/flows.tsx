@@ -11,6 +11,12 @@ export interface FlowState {
     y: number;
     zoom: number;
   };
+  nodeStates?: {
+    [nodeId: string]: {
+      expanded?: boolean;
+      size?: { width: number; height: number };
+    };
+  };
 }
 
 export interface SaveFlowData {

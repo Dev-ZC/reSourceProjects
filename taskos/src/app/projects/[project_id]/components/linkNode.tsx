@@ -3,6 +3,7 @@ import { Node, NodeProps } from 'reactflow';
 import { useReactFlow } from '@xyflow/react';
 import NodeSettingsMenu from './NodeSettingsMenu';
 import { useUpdateLink, useDeleteLink } from '../../../api/queries/links';
+import { useNodeStateContext } from '../contexts/NodeStateContext';
 // Locally defined because the type may be missing from @types/react-resizable
 
 interface ResizeCallbackData {
@@ -109,6 +110,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
   const updateLinkMutation = useUpdateLink();
   const deleteLinkMutation = useDeleteLink();
+  const { updateNodeState, getNodeState, removeNodeState } = useNodeStateContext();
 
   // Helper function to safely get hostname from URL
   const getHostname = (url: string): string => {
@@ -272,6 +274,9 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       // Delete from backend first
       await deleteLinkMutation.mutateAsync(linkId);
 
+      // Remove persistent state
+      removeNodeState(id);
+
       // Only remove from frontend after successful backend deletion
       setNodes((nodes) => nodes.filter((node) => node.id !== id));
     } catch (error) {
@@ -309,33 +314,45 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
     setShowSettings(true);
   };
 
-  const [expanded, setExpanded] = useState(false);
+  // Get persistent state
+  const persistentState = getNodeState(id);
+  const [expanded, setExpanded] = useState(persistentState.expanded || false);
   const MIN_WIDTH = 400;
   const MIN_HEIGHT = 300;
   const MAX_WIDTH = 1200;
   const MAX_HEIGHT = 900;
   const SIZE_STEP = 100;
-  const [size, setSize] = useState({ width: 800, height: 600 });
+  const [size, setSize] = useState(persistentState.size || { width: 800, height: 600 });
   const [iframeError, setIframeError] = useState(false);
   const [showGoogleInstructions, setShowGoogleInstructions] = useState(false);
 
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setExpanded(!expanded);
+    const newExpanded = !expanded;
+    setExpanded(newExpanded);
+    updateNodeState(id, { expanded: newExpanded });
   };
 
   const incrementSize = () => {
-    setSize(prev => ({
-      width: Math.min(prev.width + SIZE_STEP, MAX_WIDTH),
-      height: Math.min(prev.height + SIZE_STEP, MAX_HEIGHT)
-    }));
+    setSize(prev => {
+      const newSize = {
+        width: Math.min(prev.width + SIZE_STEP, MAX_WIDTH),
+        height: Math.min(prev.height + SIZE_STEP, MAX_HEIGHT)
+      };
+      updateNodeState(id, { size: newSize });
+      return newSize;
+    });
   };
 
   const decrementSize = () => {
-    setSize(prev => ({
-      width: Math.max(prev.width - SIZE_STEP, MIN_WIDTH),
-      height: Math.max(prev.height - SIZE_STEP, MIN_HEIGHT)
-    }));
+    setSize(prev => {
+      const newSize = {
+        width: Math.max(prev.width - SIZE_STEP, MIN_WIDTH),
+        height: Math.max(prev.height - SIZE_STEP, MIN_HEIGHT)
+      };
+      updateNodeState(id, { size: newSize });
+      return newSize;
+    });
   };
 
   // Center the node using React Flow's setCenter API

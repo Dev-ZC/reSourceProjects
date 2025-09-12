@@ -7,6 +7,7 @@ import Image from 'next/image';
 import DocsNodeIcon from '../icons/docsNodeIcon.svg';
 import NodeSettingsMenu from './NodeSettingsMenu';
 import { useAutoSaveDocument, useGetDocument, useUpdateDocument, useDeleteDocument } from '../../../api/queries/docs';
+import { useNodeStateContext } from '../contexts/NodeStateContext';
 
 // Define the data shape for our docs node
 type DocsNodeData = {
@@ -27,9 +28,13 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const { setCenter, getNode, getViewport, setNodes } = useReactFlow();
     const { data, id, selected } = props;
     const { title, createdAt, content: initialContent = '', isNew = false, docId } = data;
-    const [expanded, setExpanded] = useState(false);
+    const { updateNodeState, getNodeState, removeNodeState } = useNodeStateContext();
+    
+    // Get persistent state
+    const persistentState = getNodeState(id);
+    const [expanded, setExpanded] = useState(persistentState.expanded || false);
     const [content, setContent] = useState(initialContent);
-    const [size, setSize] = useState({ width: 800, height: 600 });
+    const [size, setSize] = useState(persistentState.size || { width: 800, height: 600 });
     const [showSettings, setShowSettings] = useState(false);
     const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
     const [isLoadingContent, setIsLoadingContent] = useState(false);
@@ -85,6 +90,9 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     try {
       // Delete from backend first
       await deleteDocumentMutation.mutateAsync(docId);
+
+      // Remove persistent state
+      removeNodeState(id);
 
       // Only remove from frontend after successful backend deletion
       setNodes((nodes) => nodes.filter((node) => node.id !== id));
@@ -338,23 +346,33 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       }
     }
     
-    setExpanded(!expanded);
+    const newExpanded = !expanded;
+    setExpanded(newExpanded);
+    updateNodeState(id, { expanded: newExpanded });
   };
 
   const incrementSize = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSize(prev => ({
-      width: Math.min(prev.width + SIZE_STEP, MAX_WIDTH),
-      height: Math.min(prev.height + SIZE_STEP, MAX_HEIGHT)
-    }));
+    setSize(prev => {
+      const newSize = {
+        width: Math.min(prev.width + SIZE_STEP, MAX_WIDTH),
+        height: Math.min(prev.height + SIZE_STEP, MAX_HEIGHT)
+      };
+      updateNodeState(id, { size: newSize });
+      return newSize;
+    });
   };
 
   const decrementSize = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSize(prev => ({
-      width: Math.max(prev.width - SIZE_STEP, MIN_WIDTH),
-      height: Math.max(prev.height - SIZE_STEP, MIN_HEIGHT)
-    }));
+    setSize(prev => {
+      const newSize = {
+        width: Math.max(prev.width - SIZE_STEP, MIN_WIDTH),
+        height: Math.max(prev.height - SIZE_STEP, MIN_HEIGHT)
+      };
+      updateNodeState(id, { size: newSize });
+      return newSize;
+    });
   };
 
   // Center the node using React Flow's setCenter API
