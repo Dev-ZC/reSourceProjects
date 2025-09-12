@@ -102,7 +102,7 @@ type LinkNodeData = {
 type LinkNodeType = Node<LinkNodeData>;
 
 const LinkNode = (props: NodeProps<LinkNodeData>) => {
-  const { setNodes } = useReactFlow();
+  const { setNodes, setCenter, getNode, getViewport } = useReactFlow();
   const { data, id } = props;
   const { title = data.string, url, string, linkId, isNew = false } = data;
   const [showSettings, setShowSettings] = useState(false);
@@ -121,6 +121,114 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       return 'Invalid URL';
     }
   };
+
+  // Helper function to detect and convert YouTube URLs to embed format
+  const getEmbedUrl = (url: string): string => {
+    if (!url || url.trim() === '') {
+      return url;
+    }
+
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      // Check if it's a YouTube URL
+      if (hostname === 'www.youtube.com' || hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+        const searchParams = urlObj.searchParams;
+        const videoId = searchParams.get('v');
+        
+        if (videoId) {
+          // Convert to embed URL
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+      }
+      
+      // Check if it's a YouTube short URL (youtu.be)
+      if (hostname === 'youtu.be') {
+        const videoId = urlObj.pathname.slice(1); // Remove the leading '/'
+        if (videoId) {
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+      }
+      
+      // Check if it's already an embed URL
+      if (hostname === 'www.youtube.com' && urlObj.pathname.startsWith('/embed/')) {
+        return url; // Already an embed URL
+      }
+      
+      // For non-YouTube URLs, return as-is
+      return url;
+    } catch {
+      return url; // Return original URL if parsing fails
+    }
+  };
+
+  // Helper function to check if URL is a YouTube video
+  const isYouTubeVideo = (url: string): boolean => {
+    if (!url || url.trim() === '') {
+      return false;
+    }
+
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      return (
+        (hostname === 'www.youtube.com' || hostname === 'youtube.com' || hostname === 'm.youtube.com') &&
+        (urlObj.searchParams.has('v') || urlObj.pathname.startsWith('/embed/'))
+      ) || hostname === 'youtu.be';
+    } catch {
+      return false;
+    }
+  };
+
+  // Helper function to check if URL is a Google service (for error handling)
+  const getGoogleServiceName = (url: string): string => {
+    if (!url || url.trim() === '') {
+      return '';
+    }
+
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      const pathname = urlObj.pathname.toLowerCase();
+      
+      if (hostname === 'docs.google.com') {
+        if (pathname.includes('/document/')) {
+          return 'Google Docs';
+        } else if (pathname.includes('/spreadsheets/')) {
+          return 'Google Sheets';
+        } else if (pathname.includes('/presentation/')) {
+          return 'Google Slides';
+        } else if (pathname.includes('/forms/')) {
+          return 'Google Forms';
+        }
+      } else if (hostname === 'colab.research.google.com') {
+        return 'Google Colab';
+      } else if (hostname === 'drive.google.com') {
+        return 'Google Drive';
+      }
+      
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  // Handle iframe load error
+  const handleIframeError = () => {
+    setIframeError(true);
+    const googleService = getGoogleServiceName(url);
+    if (googleService) {
+      setShowGoogleInstructions(true);
+    }
+  };
+
+  // Reset error states when URL changes
+  React.useEffect(() => {
+    setIframeError(false);
+    setShowGoogleInstructions(false);
+  }, [url]);
 
   // Handle settings save - backend-first approach
   const handleSettingsSave = async (data: { title: string; url?: string }) => {
@@ -208,6 +316,8 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const MAX_HEIGHT = 900;
   const SIZE_STEP = 100;
   const [size, setSize] = useState({ width: 800, height: 600 });
+  const [iframeError, setIframeError] = useState(false);
+  const [showGoogleInstructions, setShowGoogleInstructions] = useState(false);
 
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -226,6 +336,26 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       width: Math.max(prev.width - SIZE_STEP, MIN_WIDTH),
       height: Math.max(prev.height - SIZE_STEP, MIN_HEIGHT)
     }));
+  };
+
+  // Center the node using React Flow's setCenter API
+  const centerNode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const node = getNode(id);
+    
+    if (node) {
+      // Get current zoom level
+      const { zoom } = getViewport();
+      
+      // Calculate the center point of the node based on current size
+      const nodeWidth = expanded ? size.width : 160; // 160px is the collapsed width (w-40)
+      const nodeHeight = expanded ? size.height : 120; // Approximate collapsed height
+      
+      const nodeCenterX = node.position.x + nodeWidth / 2;
+      const nodeCenterY = node.position.y + nodeHeight / 2;
+      
+      setCenter(nodeCenterX, nodeCenterY, { zoom: 1, duration: 500 });
+    }
   };
 
   // Remove custom resize logic and refs (not needed with react-resizable)
@@ -259,16 +389,27 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
                 href={url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-transform duration-150 hover:scale-125"
+                className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-transform duration-150 hover:scale-125 mr-3"
                 onClick={(e) => e.stopPropagation()}
                 title="Open in new tab"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
                   <line x1="10" y1="14" x2="21" y2="3"></line>
                 </svg>
               </a>
+              <button
+                onClick={centerNode}
+                className="cursor-pointer p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-transform duration-150 hover:scale-125"
+                title="Center view"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 16V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
               <button
                 onClick={decrementSize}
                 className="cursor-pointer p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-transform duration-150 hover:scale-125"
@@ -315,22 +456,128 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
             zIndex: 1
           }}
         >
-          <iframe
-            src={url}
-            className="w-full h-full"
-            title={title}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            style={{
-              border: 'none',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'white',
-              zIndex: 1
-            }}
-          />
+          {iframeError ? (
+            <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-8">
+              <div className="max-w-md text-center">
+                {showGoogleInstructions ? (
+                  // Google-specific instructions
+                  <>
+                    <div className="mb-4">
+                      <svg className="w-16 h-16 mx-auto text-blue-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                      {getGoogleServiceName(url)} Embedding
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      This {getGoogleServiceName(url)} document couldn't be embedded. You may need to publish it to the web.
+                    </p>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-left">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Try these steps:
+                      </p>
+                      <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>1. Open your document in {getGoogleServiceName(url)}</li>
+                        <li>2. Click the <strong>Share</strong> button (top right corner)</li>
+                        <li>3. Set permissions to <strong>"Anyone with the link"</strong> if you want others to edit within the frame</li>
+                        <li>4. Go to <strong>File → Share → Publish to the web</strong></li>
+                        <li>5. Click <strong>Publish</strong></li>
+                        <li>6. Copy the embed URL that starts with:</li>
+                        <li className="font-mono bg-gray-100 dark:bg-gray-700 p-1 rounded text-xs">
+                          https://docs.google.com/...
+                        </li>
+                        <li>7. Update this link node with the embed URL</li>
+                      </ol>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 italic">
+                        💡 Setting "Anyone with the link" permissions allows collaborative editing directly within the embedded frame.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  // Generic connection refused message
+                  <>
+                    <div className="mb-4">
+                      <svg className="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                      Connection Refused
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      This website doesn't allow embedding in frames for security reasons.
+                    </p>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-left">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Why this happens:
+                      </p>
+                      <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>• The site has X-Frame-Options security headers</li>
+                        <li>• Content Security Policy blocks iframe embedding</li>
+                        <li>• The site prevents clickjacking attacks</li>
+                      </ul>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-3 mb-2">
+                        What you can do:
+                      </p>
+                      <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <li>• Use the "Open Original" button to view in a new tab</li>
+                        <li>• Look for an embed or share option on the website</li>
+                        <li>• Check if the site offers an API or widget</li>
+                      </ul>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-2 mt-4">
+                  <a 
+                    href={url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Open Original
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <button
+                    onClick={() => {
+                      setShowGoogleInstructions(false);
+                      setIframeError(false);
+                    }}
+                    className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <iframe
+              src={getEmbedUrl(url)}
+              className="w-full h-full"
+              title={title}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              allow={isYouTubeVideo(url) ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" : undefined}
+              onError={handleIframeError}
+              onLoad={() => {
+                // Reset error state on successful load
+                setIframeError(false);
+                setShowGoogleInstructions(false);
+              }}
+              style={{
+                border: 'none',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'white',
+                zIndex: 1,
+                display: iframeError ? 'none' : 'block'
+              }}
+            />
+          )}
         </div>
       </div>
     );
@@ -371,8 +618,25 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
         </div>
       </div>
       
-      {/* Settings Icon - appears on hover above the node */}
-      <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 cursor-pointer">
+      {/* Hover buttons - appear on hover above the node */}
+      <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 flex items-center space-x-2">
+        {/* Go to link button */}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+          title="Go to link"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+        
+        {/* Settings button */}
         <button
           onClick={(e) => {
             e.stopPropagation();

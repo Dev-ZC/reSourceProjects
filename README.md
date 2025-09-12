@@ -1,15 +1,8 @@
 # reSourceProjects
 
-* Tickets
-    - Get user input in conversation (break loop, send message history to client, append user clarificiation, send back to server with direct call to start agent conversation)
-    - Finish skeleton for slack_agent
-    - Finish skeleton for basic_agent
-    - Make search agent (could just a be a one function query with api)
-    - When doc has no content dont send gemini query
-
-Note:
+Notes:
 * On settings save update the name in the db (and link for link node) -- DONE
-* Implement doc embeddings table with chunking
+* Implement embeddings table with chunking
 * Improve search algorithm to not solely rely on keywords
 * Add auto-saving functionality to docs -- DONE
 * Implement saving for folders backend
@@ -34,38 +27,25 @@ Note:
 
 Quality of Life:
 * Re-open already opened windows on page load
-* Chat can make changes to board
+* Add on hover go to link button for link nodes
+* Youtube video embeddings
 * Links found through websearch can be added to board via ui button
 * Include meta data of all nodes in pinecone (created_at, last_updated)
 * Add tools to claude
-* Images, pdfs, text blocks
+* Pdfs 
+* Text blocks -- DONE
 * When a node window opens it should render above the other nodes (at least initially)
 
-* !!!When folders are implemented include metdata in doc embeddings
-    -created_at, created_by, parent_folder, doc_name, etc
-
-* Finish backend MVP functionality first then work on front end & REST
-
-* When frontend receives 'user_agent: ...' from manager.user_chat then get user response then send entire chat history to new end point that will complete the interaction
-
-* Frontend message history should only include messages output between user and manager
-
--- Add Tools: Update manager prompt, update agent prompt
-
-* Store embeddings in chunks instead of full docs so only those chunks can be returned an searched instead of whole docs
-
-* Project Agent Needs: get_all_project_related_metadata
-
-* Agents themselves cant execute tools on their own if I want human in the loop
-(temp fix could just have manager send the user agent to verify then go through same user agent loop)
-
-Edge Cases:
--Save entire project prior to starting agent conversation
-(if an edit to a doc occurs then the user wants to query it, we need
-to save the edit to the db prior to making the request)
-
+Stretch Goals:
+* Collaborative Projects
+* Chat can make changes to board
+* Use composio to add extra tooling
+* Use claude mcp for extra tooling as well
+* Add image nodes (process image and store metadata)
+* Drag and drop nodes to chat to reference them
 
 
 Production Checklist:
 - Change Clerk signup webhook url to production url in (user.create, user.delete, user.update)
 - Remove or suppress all the console logs
+- Find all hardcoded instances of localhost and replace with environment variable
