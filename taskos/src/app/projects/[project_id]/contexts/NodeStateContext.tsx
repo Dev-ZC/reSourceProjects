@@ -5,6 +5,7 @@ import React, { createContext, useContext, ReactNode, useCallback } from 'react'
 interface NodeState {
   expanded?: boolean;
   size?: { width: number; height: number };
+  zIndex?: number;
 }
 
 interface NodeStateContextType {
@@ -13,6 +14,7 @@ interface NodeStateContextType {
   removeNodeState: (nodeId: string) => void;
   nodeStates: { [nodeId: string]: NodeState };
   setNodeStates: (states: { [nodeId: string]: NodeState }) => void;
+  getNextZIndex: () => number;
 }
 
 const NodeStateContext = createContext<NodeStateContextType | undefined>(undefined);
@@ -21,9 +23,10 @@ interface NodeStateProviderProps {
   children: ReactNode;
   nodeStates: { [nodeId: string]: NodeState };
   onNodeStatesChange: (states: { [nodeId: string]: NodeState }) => void;
+  getNextZIndex: () => number;
 }
 
-export function NodeStateProvider({ children, nodeStates, onNodeStatesChange }: NodeStateProviderProps) {
+export function NodeStateProvider({ children, nodeStates, onNodeStatesChange, getNextZIndex }: NodeStateProviderProps) {
   const updateNodeState = useCallback((nodeId: string, state: Partial<NodeState>) => {
     const newStates = {
       ...nodeStates,
@@ -54,7 +57,8 @@ export function NodeStateProvider({ children, nodeStates, onNodeStatesChange }: 
     getNodeState,
     removeNodeState,
     nodeStates,
-    setNodeStates
+    setNodeStates,
+    getNextZIndex
   };
 
   return (

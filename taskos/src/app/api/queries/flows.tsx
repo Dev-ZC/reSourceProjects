@@ -15,6 +15,7 @@ export interface FlowState {
     [nodeId: string]: {
       expanded?: boolean;
       size?: { width: number; height: number };
+      zIndex?: number;
     };
   };
 }

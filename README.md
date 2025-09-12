@@ -17,8 +17,9 @@ Notes:
 * Add images!!
 * Add pdfs uploads!!
 * Fetch user info on first load and propagate info to dashboard -- DONE
-* Allow users to embed youtube videos
-* Allow user to embed google docs, presentations, etc (and open in window)
+* Allow users to embed youtube videos -- DONE
+* Allow user to embed google docs, presentations, etc (and open in window) -- KIND OF DONE
+* Have text box save to db
 
 * Landing page with about and pricing
 * Implement payment system
@@ -26,9 +27,9 @@ Notes:
 * Use claude mcp for extra tooling as well
 
 Quality of Life:
-* Re-open already opened windows on page load
-* Add on hover go to link button for link nodes
-* Youtube video embeddings
+* Re-open already opened windows on page load -- DONE
+* Add on hover go to link button for link nodes -- DONE
+* Youtube video embeddings -- DONE
 * Links found through websearch can be added to board via ui button
 * Include meta data of all nodes in pinecone (created_at, last_updated)
 * Add tools to claude

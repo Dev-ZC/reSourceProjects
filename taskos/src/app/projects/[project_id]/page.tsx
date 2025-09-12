@@ -79,7 +79,10 @@ export default function App() {
   const viewportRef = useRef({ x: 0, y: 0, zoom: 1 });
   
   // Node states for persistence
-  const [nodeStates, setNodeStates] = useState<{ [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number } } }>({});
+  const [nodeStates, setNodeStates] = useState<{ [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number }; zIndex?: number } }>({});
+  
+  // Z-index management for expanded nodes
+  const [nextZIndex, setNextZIndex] = useState(1000);
   
   // Update refs when state changes
   useEffect(() => {
@@ -149,8 +152,16 @@ export default function App() {
   }, [onNodesChange, autoSave, nodeStates]);
 
   // Handle node states change with auto-save
-  const handleNodeStatesChange = useCallback((newNodeStates: { [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number } } }) => {
+  const handleNodeStatesChange = useCallback((newNodeStates: { [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number }; zIndex?: number } }) => {
     setNodeStates(newNodeStates);
+    
+    // Update React Flow nodes with new zIndex values
+    setNodes(currentNodes => 
+      currentNodes.map(node => ({
+        ...node,
+        zIndex: newNodeStates[node.id]?.zIndex || 1
+      }))
+    );
     
     // Auto-save the updated flow state including node states
     setTimeout(() => {
@@ -161,7 +172,7 @@ export default function App() {
         nodeStates: newNodeStates
       });
     }, 0);
-  }, [autoSave]);
+  }, [autoSave, setNodes]);
 
   // Handle viewport changes (no auto-save)
   const handleViewportChange = useCallback((viewport: Viewport) => {
@@ -296,8 +307,19 @@ export default function App() {
     }
   }, [isChatOpen]);
  
+  // Function to get next z-index for expanded nodes
+  const getNextZIndex = useCallback(() => {
+    const currentMax = Math.max(1000, nextZIndex);
+    setNextZIndex(currentMax + 1);
+    return currentMax;
+  }, [nextZIndex]);
+
   return (
-    <NodeStateProvider nodeStates={nodeStates} onNodeStatesChange={handleNodeStatesChange}>
+    <NodeStateProvider 
+      nodeStates={nodeStates} 
+      onNodeStatesChange={handleNodeStatesChange}
+      getNextZIndex={getNextZIndex}
+    >
       <div className="w-full h-full overflow-hidden relative">
         <ReactFlow
             nodes={nodes}

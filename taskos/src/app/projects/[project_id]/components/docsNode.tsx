@@ -28,7 +28,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const { setCenter, getNode, getViewport, setNodes } = useReactFlow();
     const { data, id, selected } = props;
     const { title, createdAt, content: initialContent = '', isNew = false, docId } = data;
-    const { updateNodeState, getNodeState, removeNodeState } = useNodeStateContext();
+    const { updateNodeState, getNodeState, removeNodeState, getNextZIndex } = useNodeStateContext();
     
     // Get persistent state
     const persistentState = getNodeState(id);
@@ -337,18 +337,20 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       }
       
       // Clean up Quill instance immediately
-      quillRef.current.off('text-change');
-      quillRef.current = null;
-      
-      // Clear editor container
-      if (editorRef.current) {
-        editorRef.current.innerHTML = '';
+      if (quillRef.current) {
+        quillRef.current = null;
       }
     }
     
     const newExpanded = !expanded;
     setExpanded(newExpanded);
-    updateNodeState(id, { expanded: newExpanded });
+    
+    // Update persistent state with z-index management
+    updateNodeState(id, { 
+        expanded: newExpanded,
+        size: newExpanded ? { width: 800, height: 600 } : undefined,
+        zIndex: newExpanded ? getNextZIndex() : 1
+    });
   };
 
   const incrementSize = (e: React.MouseEvent) => {

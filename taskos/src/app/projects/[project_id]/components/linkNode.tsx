@@ -110,7 +110,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
   const updateLinkMutation = useUpdateLink();
   const deleteLinkMutation = useDeleteLink();
-  const { updateNodeState, getNodeState, removeNodeState } = useNodeStateContext();
+  const { updateNodeState, getNodeState, removeNodeState, getNextZIndex } = useNodeStateContext();
 
   // Helper function to safely get hostname from URL
   const getHostname = (url: string): string => {
@@ -330,7 +330,13 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
     e.stopPropagation();
     const newExpanded = !expanded;
     setExpanded(newExpanded);
-    updateNodeState(id, { expanded: newExpanded });
+    
+    // Update persistent state with z-index management
+    updateNodeState(id, { 
+      expanded: newExpanded,
+      size: newExpanded ? { width: 800, height: 600 } : undefined,
+      zIndex: newExpanded ? getNextZIndex() : 1
+    });
   };
 
   const incrementSize = () => {
