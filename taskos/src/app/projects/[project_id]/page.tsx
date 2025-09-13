@@ -151,6 +151,142 @@ export default function App() {
     }, 0);
   }, [onNodesChange, autoSave, nodeStates]);
 
+  // Handle node drag start to clear animations
+  const handleNodeDragStart = useCallback((event: any, draggedNode: any) => {
+    // Clear any animation styles that might interfere with dragging
+    setNodes((nodes) => 
+      nodes.map((node) => {
+        if (node.id === draggedNode.id) {
+          return {
+            ...node,
+            style: {
+              ...node.style,
+              transition: 'none', // Remove transitions during drag
+              zIndex: 1000 // Bring to front during drag
+            }
+          };
+        }
+        return node;
+      })
+    );
+  }, [setNodes]);
+
+  // Handle node drag stop for folder grouping and folder movement
+  const handleNodeDragStop = useCallback((event: any, draggedNode: any) => {
+    const draggedNodeElement = event.target.closest('.react-flow__node');
+    if (!draggedNodeElement) return;
+
+    console.log('Node drag stop:', draggedNode.id, draggedNode.type);
+
+    // If a folder was dragged, move its grouped nodes
+    if (draggedNode.type === 'folderNode') {
+      const folderData = draggedNode.data || {};
+      const groupedNodes = folderData.groupedNodes || [];
+      
+      if (groupedNodes.length > 0) {
+        console.log('Moving grouped nodes with folder:', draggedNode.id);
+        
+        setNodes((currentNodes) => {
+          return currentNodes.map((node) => {
+            // If this is a grouped node that's currently sliding out, update its position
+            if (node.data?.groupedToFolder === draggedNode.id && node.data?.isSlideOut) {
+              const index = groupedNodes.indexOf(node.id);
+              return {
+                ...node,
+                position: {
+                  x: draggedNode.position.x + 200 + (index * 200),
+                  y: draggedNode.position.y
+                },
+                style: {
+                  ...node.style,
+                  transition: 'transform 0.5s ease-out'
+                }
+              };
+            }
+            return node;
+          });
+        });
+      }
+      return; // Exit early for folder drag
+    }
+
+    // Only allow doc and link nodes to be grouped to folders
+    if (draggedNode.type !== 'docsNode' && draggedNode.type !== 'linkNode') {
+      return; // Exit early if not a doc or link node
+    }
+
+    // Only allow collapsed nodes to be added to folders
+    if (draggedNode.data?.expanded === true) {
+      console.log('Cannot add expanded node to folder:', draggedNode.id);
+      return; // Exit early if node is expanded
+    }
+
+    // Get all folder nodes for regular node grouping
+    const folderNodes = nodes.filter(node => node.type === 'folderNode');
+    
+    // Check if dragged node overlaps with any folder
+    folderNodes.forEach(folderNode => {
+      const folderElement = document.querySelector(`[data-id="${folderNode.id}"]`);
+      if (!folderElement) return;
+
+      const draggedRect = draggedNodeElement.getBoundingClientRect();
+      const folderRect = folderElement.getBoundingClientRect();
+
+      // Check for overlap
+      const isOverlapping = (
+        draggedRect.left < folderRect.right &&
+        draggedRect.right > folderRect.left &&
+        draggedRect.top < folderRect.bottom &&
+        draggedRect.bottom > folderRect.top
+      );
+
+      if (isOverlapping && draggedNode.id !== folderNode.id) {
+        console.log('Node overlapping with folder:', draggedNode.id, folderNode.id);
+        
+        // Group the node to the folder
+        setNodes((currentNodes) => {
+          // First, make a copy of the current nodes
+          const updatedNodes = [...currentNodes];
+          
+          // Find the folder node and update its groupedNodes array
+          const folderNodeIndex = updatedNodes.findIndex(n => n.id === folderNode.id);
+          if (folderNodeIndex !== -1) {
+            const folderNodeData = updatedNodes[folderNodeIndex].data || {};
+            const currentGrouped = folderNodeData.groupedNodes || [];
+            
+            if (!currentGrouped.includes(draggedNode.id)) {
+              console.log('Adding node to folder groupedNodes:', draggedNode.id);
+              updatedNodes[folderNodeIndex] = {
+                ...updatedNodes[folderNodeIndex],
+                data: {
+                  ...folderNodeData,
+                  groupedNodes: [...currentGrouped, draggedNode.id]
+                }
+              };
+            }
+          }
+          
+          // Find the dragged node and update its groupedToFolder property
+          const draggedNodeIndex = updatedNodes.findIndex(n => n.id === draggedNode.id);
+          if (draggedNodeIndex !== -1) {
+            console.log('Setting groupedToFolder on node:', draggedNode.id, folderNode.id);
+            updatedNodes[draggedNodeIndex] = {
+              ...updatedNodes[draggedNodeIndex],
+              data: {
+                ...updatedNodes[draggedNodeIndex].data,
+                groupedToFolder: folderNode.id
+              },
+              // Hide the node initially
+              hidden: true
+            };
+          }
+          
+          return updatedNodes;
+        });
+      }
+    });
+  }, [nodes, setNodes]);
+
   // Handle node states change with auto-save
   const handleNodeStatesChange = useCallback((newNodeStates: { [nodeId: string]: { expanded?: boolean; size?: { width: number; height: number }; zIndex?: number } }) => {
     setNodeStates(newNodeStates);
@@ -329,6 +465,8 @@ export default function App() {
             onConnect={onConnect}
             onViewportChange={handleViewportChange}
             onPaneClick={onPaneClick}
+            onNodeDragStart={handleNodeDragStart}
+            onNodeDragStop={handleNodeDragStop}
             nodeTypes={nodeTypes}
             proOptions={{ hideAttribution: true }}
             noDragClassName='nodrag'

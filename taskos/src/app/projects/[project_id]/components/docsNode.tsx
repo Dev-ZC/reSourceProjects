@@ -16,6 +16,7 @@ type DocsNodeData = {
   content?: string;
   isNew?: boolean;
   docId?: string; // Add document ID for autosave
+  groupedToFolder?: string; // ID of folder this node is grouped to
 };
 
 type DocsNodeType = Node<DocsNodeData>;
@@ -27,7 +28,7 @@ import 'quill/dist/quill.snow.css';
 const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const { setCenter, getNode, getViewport, setNodes } = useReactFlow();
     const { data, id, selected } = props;
-    const { title, createdAt, content: initialContent = '', isNew = false, docId } = data;
+    const { title, createdAt, content: initialContent = '', isNew = false, docId, groupedToFolder } = data;
     const { updateNodeState, getNodeState, removeNodeState, getNextZIndex } = useNodeStateContext();
     
     // Get persistent state
@@ -95,7 +96,25 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       removeNodeState(id);
 
       // Only remove from frontend after successful backend deletion
-      setNodes((nodes) => nodes.filter((node) => node.id !== id));
+      setNodes((nodes) => {
+        // If this node is grouped to a folder, update that folder's groupedNodes array
+        if (groupedToFolder) {
+          return nodes.map((node) => {
+            if (node.id === groupedToFolder && node.data && 'groupedNodes' in node.data && Array.isArray(node.data.groupedNodes)) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  groupedNodes: node.data.groupedNodes.filter((nodeId: string) => nodeId !== id)
+                }
+              };
+            }
+            return node;
+          }).filter((node) => node.id !== id);
+        }
+        // If not grouped, just remove the node
+        return nodes.filter((node) => node.id !== id);
+      });
     } catch (error) {
       console.error('Failed to delete document:', error);
       // Optionally show user-friendly error message
@@ -547,7 +566,6 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       style={collapsedStyle}
       ref={collapsedNodeRef}
       onClick={toggleExpand}
-      data-ignore-drag
     >
       <div className="relative w-24 h-24 mb-2 flex items-center justify-center">
         <div className="absolute inset-0 dark:bg-gray-800/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -559,6 +577,14 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
             style={{ objectFit: 'contain' }}
             className="transition-transform duration-300 group-hover:translate-y-[-2px]"
           />
+          {/* Small folder icon overlay for grouped nodes */}
+          {groupedToFolder && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="white" className="opacity-90">
+                <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
+              </svg>
+            </div>
+          )}
         </div>
       </div>
       <div className="text-center">

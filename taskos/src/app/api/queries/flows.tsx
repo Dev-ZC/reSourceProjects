@@ -85,7 +85,7 @@ export const useLoadFlow = (projectId: string) => {
 };
 
 // Debounced auto-save hook
-export const useAutoSaveFlow = (projectId: string, debounceMs: number = 2000) => {
+export const useAutoSaveFlow = (projectId: string, debounceMs: number = 5000) => {
   const queryClient = useQueryClient();
   const saveFlowMutation = useSaveFlow();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);

@@ -93,11 +93,12 @@ if (typeof document !== 'undefined') {
 
 // Define the data shape for our link node
 type LinkNodeData = {
-  title?: string;
+  title: string;
   url: string;
-  string: string;
-  linkId?: string; // Backend-generated ID
+  createdAt: string;
   isNew?: boolean;
+  linkId?: string; // Add link ID for autosave
+  groupedToFolder?: string; // ID of folder this node is grouped to
 };
 
 type LinkNodeType = Node<LinkNodeData>;
@@ -105,7 +106,7 @@ type LinkNodeType = Node<LinkNodeData>;
 const LinkNode = (props: NodeProps<LinkNodeData>) => {
   const { setNodes, setCenter, getNode, getViewport } = useReactFlow();
   const { data, id } = props;
-  const { title = data.string, url, string, linkId, isNew = false } = data;
+  const { title, url, linkId, isNew = false, groupedToFolder } = data;
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPosition, setSettingsPosition] = useState({ x: 0, y: 0 });
   const updateLinkMutation = useUpdateLink();
@@ -253,7 +254,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       setNodes((nodes) =>
         nodes.map((node) =>
           node.id === id
-            ? { ...node, data: { ...node.data, string: data.title, url: data.url || node.data.url, isNew: false } }
+            ? { ...node, data: { ...node.data, title: data.title, url: data.url || node.data.url, isNew: false } }
             : node
         )
       );
@@ -278,7 +279,25 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       removeNodeState(id);
 
       // Only remove from frontend after successful backend deletion
-      setNodes((nodes) => nodes.filter((node) => node.id !== id));
+      setNodes((nodes) => {
+        // If this node is grouped to a folder, update that folder's groupedNodes array
+        if (groupedToFolder) {
+          return nodes.map((node) => {
+            if (node.id === groupedToFolder && node.data && 'groupedNodes' in node.data && Array.isArray(node.data.groupedNodes)) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  groupedNodes: node.data.groupedNodes.filter((nodeId: string) => nodeId !== id)
+                }
+              };
+            }
+            return node;
+          }).filter((node) => node.id !== id);
+        }
+        // If not grouped, just remove the node
+        return nodes.filter((node) => node.id !== id);
+      });
     } catch (error) {
       console.error('Failed to delete link:', error);
       // Optionally show user-friendly error message
@@ -630,11 +649,19 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
                 style={{ objectFit: 'contain' }}
                 className="transition-transform duration-300 group-hover:translate-y-[-2px]"
             />
+            {/* Small folder icon overlay for grouped nodes */}
+            {groupedToFolder && (
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="white" className="opacity-90">
+                  <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
+                </svg>
+              </div>
+            )}
         </div>
       </div>
       <div className="text-center">
         <div className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate w-full transition-colors duration-300 group-hover:text-gray-900 dark:group-hover:text-white">
-          {title || string}
+          {title || 'New Link'}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate w-32">
           {getHostname(url)}
@@ -680,7 +707,7 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         nodeType="link"
-        currentTitle={title || string || 'New Link'}
+        currentTitle={title || 'New Link'}
         currentUrl={url}
         onSave={handleSettingsSave}
         onDelete={handleDelete}
