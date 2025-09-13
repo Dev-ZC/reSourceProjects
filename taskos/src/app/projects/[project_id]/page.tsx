@@ -243,10 +243,28 @@ export default function App() {
       if (isOverlapping && draggedNode.id !== folderNode.id) {
         console.log('Node overlapping with folder:', draggedNode.id, folderNode.id);
         
-        // Group the node to the folder
+        // Group the node to the folder (handle regrouping from another folder)
         setNodes((currentNodes) => {
           // First, make a copy of the current nodes
           const updatedNodes = [...currentNodes];
+          
+          // If node is already grouped to another folder, remove it from that folder first
+          const currentGroupedTo = draggedNode.data?.groupedToFolder;
+          if (currentGroupedTo && currentGroupedTo !== folderNode.id) {
+            console.log('Removing node from previous folder:', draggedNode.id, currentGroupedTo);
+            const previousFolderIndex = updatedNodes.findIndex(n => n.id === currentGroupedTo);
+            if (previousFolderIndex !== -1) {
+              const previousFolderData = updatedNodes[previousFolderIndex].data || {};
+              const previousGrouped = previousFolderData.groupedNodes || [];
+              updatedNodes[previousFolderIndex] = {
+                ...updatedNodes[previousFolderIndex],
+                data: {
+                  ...previousFolderData,
+                  groupedNodes: previousGrouped.filter((nodeId: string) => nodeId !== draggedNode.id)
+                }
+              };
+            }
+          }
           
           // Find the folder node and update its groupedNodes array
           const folderNodeIndex = updatedNodes.findIndex(n => n.id === folderNode.id);

@@ -144,6 +144,43 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     setShowSettings(true);
   };
 
+  // Handle ungroup from folder
+  const handleUngroup = () => {
+    console.log('Ungrouping node from folder:', id, groupedToFolder);
+    
+    setNodes((currentNodes) => {
+      return currentNodes.map((node) => {
+        if (node.id === id) {
+          // Remove groupedToFolder property and make node visible
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              groupedToFolder: undefined
+            },
+            hidden: false,
+            style: {
+              ...node.style,
+              opacity: 1
+            }
+          };
+        } else if (node.id === groupedToFolder) {
+          // Remove this node from the folder's groupedNodes array
+          const folderData = node.data || {};
+          const currentGrouped = folderData.groupedNodes || [];
+          return {
+            ...node,
+            data: {
+              ...folderData,
+              groupedNodes: (currentGrouped as string[]).filter((nodeId: string) => nodeId !== id)
+            }
+          };
+        }
+        return node;
+      });
+    });
+  };
+
   // Fetch document content when expanded
   useEffect(() => {
     if (expanded && docId && !content) {
@@ -596,8 +633,27 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
         </div>
       </div>
       
-      {/* Settings Icon - appears on hover above the node */}
-      <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 cursor-pointer">
+      {/* Hover buttons - appears on hover above the node */}
+      <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 cursor-pointer flex items-center space-x-2">
+        {/* Ungroup button - only show if node is grouped to a folder */}
+        {groupedToFolder && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUngroup();
+            }}
+            className="cursor-pointer bg-orange-500 hover:bg-orange-600 text-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            title="Ungroup from folder"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+          </button>
+        )}
+        
+        {/* Settings button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -608,7 +664,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
             <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
           </svg>
         </button>
       </div>

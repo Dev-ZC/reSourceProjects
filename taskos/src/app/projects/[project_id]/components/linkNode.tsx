@@ -333,6 +333,43 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
     setShowSettings(true);
   };
 
+  // Handle ungroup from folder
+  const handleUngroup = () => {
+    console.log('Ungrouping node from folder:', id, groupedToFolder);
+    
+    setNodes((currentNodes) => {
+      return currentNodes.map((node) => {
+        if (node.id === id) {
+          // Remove groupedToFolder property and make node visible
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              groupedToFolder: undefined
+            },
+            hidden: false,
+            style: {
+              ...node.style,
+              opacity: 1
+            }
+          };
+        } else if (node.id === groupedToFolder) {
+          // Remove this node from the folder's groupedNodes array
+          const folderData = node.data || {};
+          const currentGrouped = folderData.groupedNodes || [];
+          return {
+            ...node,
+            data: {
+              ...folderData,
+              groupedNodes: (currentGrouped as string[]).filter((nodeId: string) => nodeId !== id)
+            }
+          };
+        }
+        return node;
+      });
+    });
+  };
+
   // Get persistent state
   const persistentState = getNodeState(id);
   const [expanded, setExpanded] = useState(persistentState.expanded || false);
@@ -670,6 +707,24 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
       
       {/* Hover buttons - appear on hover above the node */}
       <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-2 flex items-center space-x-2">
+        {/* Ungroup button - only show if node is grouped to a folder */}
+        {groupedToFolder && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUngroup();
+            }}
+            className="cursor-pointer bg-orange-500 hover:bg-orange-600 text-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            title="Ungroup from folder"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+          </button>
+        )}
+        
         {/* Go to link button */}
         <a
           href={url}
