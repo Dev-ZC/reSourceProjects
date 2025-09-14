@@ -99,6 +99,8 @@ type LinkNodeData = {
   isNew?: boolean;
   linkId?: string; // Add link ID for autosave
   groupedToFolder?: string; // ID of folder this node is grouped to
+  forceCollapsed?: boolean; // Force node to stay collapsed
+  isSlideOut?: boolean; // Whether node is sliding out of folder
 };
 
 type LinkNodeType = Node<LinkNodeData>;
@@ -372,7 +374,16 @@ const LinkNode = (props: NodeProps<LinkNodeData>) => {
 
   // Get persistent state
   const persistentState = getNodeState(id);
+  // Force collapse when initially sliding out of folder, but allow expansion after
   const [expanded, setExpanded] = useState(persistentState.expanded || false);
+
+  // Watch for when node starts sliding out - force collapse initially but allow expansion after
+  useEffect(() => {
+    if (groupedToFolder && data.isSlideOut && expanded && data.forceCollapsed) {
+      setExpanded(false);
+      updateNodeState(id, { expanded: false });
+    }
+  }, [groupedToFolder, data.isSlideOut, expanded, id, updateNodeState, data.forceCollapsed]);
   const MIN_WIDTH = 400;
   const MIN_HEIGHT = 300;
   const MAX_WIDTH = 1200;

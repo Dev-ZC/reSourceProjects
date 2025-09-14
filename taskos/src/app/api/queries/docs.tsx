@@ -70,7 +70,7 @@ export const useUpdateDocument = () => {
 };
 
 // Get document query
-export const useGetDocument = (doc_id: string) => {
+export const useGetDocument = () => {
   return useMutation<DocumentOperationResponse, Error, string>({
     mutationFn: async (docId: string) => {
       const response = await api.get<DocumentOperationResponse>(`/api/docs/get/${docId}`);
@@ -156,6 +156,15 @@ export const useAutoSaveDocument = (docId: string, debounceMs: number = 3000) =>
 
   const debouncedSave = useCallback((content: string) => {
     console.log('debouncedSave called with docId:', docId, 'content length:', content.length);
+    console.log('Current saved content:', lastSavedContentRef.current);
+    console.log('New content:', content);
+    console.log('Content comparison result:', lastSavedContentRef.current === content);
+    
+    // Don't save if no docId is provided
+    if (!docId || docId.trim() === '') {
+      console.log('No valid docId provided, skipping save');
+      return;
+    }
     
     // Don't save if the content hasn't changed
     if (lastSavedContentRef.current === content) {
@@ -173,7 +182,8 @@ export const useAutoSaveDocument = (docId: string, debounceMs: number = 3000) =>
     // Set new timeout
     timeoutRef.current = setTimeout(() => {
       console.log('Executing autosave for docId:', docId);
-      lastSavedContentRef.current = content;
+      console.log('Content being saved:', content);
+      
       updateDocumentMutation.mutate(
         {
           doc_id: docId,
@@ -182,6 +192,8 @@ export const useAutoSaveDocument = (docId: string, debounceMs: number = 3000) =>
         {
           onSuccess: (data) => {
             console.log('Autosave successful:', data);
+            // Only update lastSavedContentRef after successful save
+            lastSavedContentRef.current = content;
             // Update the query cache with the saved data
             queryClient.setQueryData(['document', docId], (oldData: DocumentResponse | undefined) => ({
               ...oldData,
@@ -191,6 +203,7 @@ export const useAutoSaveDocument = (docId: string, debounceMs: number = 3000) =>
           },
           onError: (error) => {
             console.error('Autosave failed:', error);
+            // Don't update lastSavedContentRef on error so retry can happen
           },
         }
       );

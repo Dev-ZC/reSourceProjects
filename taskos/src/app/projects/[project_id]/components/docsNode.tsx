@@ -57,10 +57,11 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     const isTypingRef = useRef(false);
 
     // Initialize autosave hook (only if docId exists)
+    console.log('DocsNode initialized with docId:', docId, 'for node:', id);
     const { autoSave, isSaving, saveError, cleanup } = useAutoSaveDocument(docId || '', 3000);
   
     // Initialize get document hook
-    const getDocumentMutation = useGetDocument(docId || '');
+    const getDocumentMutation = useGetDocument();
     const updateDocumentMutation = useUpdateDocument();
     const deleteDocumentMutation = useDeleteDocument();
 
@@ -192,20 +193,20 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     });
   };
 
-  // Fetch document content when expanded
+  // Fetch document content when expanded (only if we don't have content yet)
   useEffect(() => {
-    if (expanded && docId && !content) {
-      console.log('Fetching content for docId:', docId);
+    if (expanded && docId && (!content || content === '')) {
+      console.log('Fetching content for docId:', docId, 'current content length:', content?.length || 0);
       setIsLoadingContent(true);
       getDocumentMutation.mutate(docId, {
         onSuccess: (data: any) => {
           console.log('Document fetch success, received data:', data);
           setIsLoadingContent(false);
-          if (data.document?.content) {
-            console.log('Setting content:', data.document.content);
+          if (data.document?.content !== undefined) {
+            console.log('Setting content from backend:', data.document.content);
             setContent(data.document.content);
           } else {
-            console.log('No content found in document data');
+            console.log('No content found in document data, keeping current content');
           }
         },
         onError: (error: any) => {
@@ -214,11 +215,11 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
         }
       });
     }
-  }, [expanded, docId, content]);
+  }, [expanded, docId]);
 
-  // Initialize Quill only when expanded
+  // Initialize Quill only when expanded and content is ready
   useEffect(() => {
-    if (expanded && editorRef.current && !quillRef.current) {
+    if (expanded && editorRef.current && !quillRef.current && !isLoadingContent) {
       import('quill').then(QuillModule => {
         const Quill = QuillModule.default;
         
@@ -262,7 +263,8 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
           ]
         });
 
-        if (content) {
+        // Set content after Quill is initialized
+        if (content && content.trim() !== '') {
           console.log('Setting Quill content:', content);
           quillRef.current.root.innerHTML = content;
         } else {
@@ -277,6 +279,8 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
             setContent(newContent);
             
             console.log('Text changed, docId:', docId, 'content length:', newContent.length);
+            console.log('Node data:', data);
+            console.log('AutoSave function available:', typeof autoSave);
             
             if (docId) {
               console.log('Triggering autosave for docId:', docId);
@@ -356,7 +360,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
         }
       }
     };
-  }, [expanded, docId, autoSave, cleanup]);
+  }, [expanded, docId, autoSave, cleanup, content, isLoadingContent]);
 
   // Update Quill content when content state changes (but not during active editing)
   useEffect(() => {
