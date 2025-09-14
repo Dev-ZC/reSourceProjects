@@ -128,11 +128,11 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
       // Force a delay to ensure state updates properly
       setTimeout(() => {
         if (newExpanded) {
-          // First ensure all grouped nodes are collapsed in both node data AND persistent state
+          // First ensure ALL grouped nodes are collapsed regardless of their previous state
           setNodes((nodes) => 
             nodes.map((node) => {
               if (node.data?.groupedToFolder === id) {
-                console.log('Collapsing node before slide out:', node.id);
+                console.log('Force collapsing node before slide out:', node.id);
                 // Update persistent state to force collapsed
                 updateNodeState(node.id, { expanded: false });
                 return {
@@ -140,7 +140,7 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
                   data: {
                     ...node.data,
                     expanded: false,
-                    forceCollapsed: node.data?.forceCollapsed || false // Respect force collapsed flag
+                    forceCollapsed: true // Force all nodes to be collapsed when folder opens
                   }
                 };
               }
@@ -148,7 +148,7 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
             })
           );
           
-          // Force nodes to stay collapsed by updating their data and persistent state again
+          // Ensure nodes stay collapsed during slide out animation
           setTimeout(() => {
             setNodes((nodes) => 
               nodes.map((node) => {
@@ -160,7 +160,7 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
                     data: {
                       ...node.data,
                       expanded: false, // Ensure they remain collapsed
-                      forceCollapsed: node.data?.forceCollapsed || false // Maintain force collapsed flag
+                      forceCollapsed: false // Allow expansion after slide out completes
                     }
                   };
                 }
@@ -225,7 +225,7 @@ const FolderNode = (props: NodeProps<FolderNodeData>) => {
                       ...node.data,
                       isSlideOut: true,
                       expanded: false, // Ensure nodes stay collapsed when sliding out
-                      forceCollapsed: node.data?.forceCollapsed || false // Maintain force collapsed flag
+                      forceCollapsed: false // Allow expansion after slide out animation completes
                     },
                     style: {
                       ...node.style,

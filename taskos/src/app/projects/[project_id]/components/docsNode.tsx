@@ -17,6 +17,8 @@ type DocsNodeData = {
   isNew?: boolean;
   docId?: string; // Add document ID for autosave
   groupedToFolder?: string; // ID of folder this node is grouped to
+  forceCollapsed?: boolean; // Force node to stay collapsed
+  isSlideOut?: boolean; // Whether node is sliding out of folder
 };
 
 type DocsNodeType = Node<DocsNodeData>;
@@ -33,7 +35,16 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
     
     // Get persistent state
     const persistentState = getNodeState(id);
+    // Force collapse when initially sliding out of folder, but allow expansion after
     const [expanded, setExpanded] = useState(persistentState.expanded || false);
+
+    // Watch for when node starts sliding out - force collapse initially but allow expansion after
+    useEffect(() => {
+      if (groupedToFolder && data.isSlideOut && expanded && data.forceCollapsed) {
+        setExpanded(false);
+        updateNodeState(id, { expanded: false });
+      }
+    }, [groupedToFolder, data.isSlideOut, expanded, id, updateNodeState, data.forceCollapsed]);
     const [content, setContent] = useState(initialContent);
     const [size, setSize] = useState(persistentState.size || { width: 800, height: 600 });
     const [showSettings, setShowSettings] = useState(false);
@@ -299,7 +310,7 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
             
             if (tooltipLeft < 0) {
               this.root.style.left = '10px';
-            } else if (tooltipLeft + tooltipWidth > editorRect.width) {
+            } else if (tooltipLeft + tooltipWidth > editorBounds) {
               this.root.style.left = `${editorRect.width - tooltipWidth - 10}px`;
             }
             
@@ -309,31 +320,43 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       });
     }
 
+    // Cleanup function for when component unmounts or expanded changes
     return () => {
-      if (quillRef.current) {
-        // Save content before cleanup
+      if (!expanded && quillRef.current) {
+        // Save content before cleanup when collapsing
         if (quillRef.current.root) {
-          setContent(quillRef.current.root.innerHTML);
+          const currentContent = quillRef.current.root.innerHTML;
+          setContent(currentContent);
+          
+          // Auto-save the content if we have a docId
+          if (docId) {
+            console.log('Auto-saving content on collapse:', currentContent);
+            autoSave(currentContent);
+          }
         }
         
-        // Remove event listeners
+        // Remove all event listeners
         if (quillRef.current.off) {
           quillRef.current.off('text-change');
         }
         
-        // Clear Quill instance
+        // Destroy Quill instance completely
+        if (quillRef.current.root && quillRef.current.root.parentNode) {
+          quillRef.current.root.parentNode.removeChild(quillRef.current.root);
+        }
+        
+        // Clear Quill reference
         quillRef.current = null;
+        
+        // Clear editor container completely and force reflow
+        if (editorRef.current) {
+          editorRef.current.innerHTML = '';
+          // Force a reflow to ensure DOM is clean
+          editorRef.current.offsetHeight;
+        }
       }
-      
-      // Clear editor container completely
-      if (editorRef.current) {
-        editorRef.current.innerHTML = '';
-      }
-      
-      // Cleanup autosave timeout
-      cleanup();
     };
-  }, [expanded, cleanup]);
+  }, [expanded, docId, autoSave, cleanup]);
 
   // Update Quill content when content state changes (but not during active editing)
   useEffect(() => {
@@ -342,34 +365,6 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
       quillRef.current.root.innerHTML = content;
     }
   }, [content]);
-
-  // Cleanup when collapsing or unmounting
-  useEffect(() => {
-    return () => {
-      if (quillRef.current) {
-        // Save content before cleanup
-        if (quillRef.current.root) {
-          setContent(quillRef.current.root.innerHTML);
-        }
-        
-        // Remove event listeners
-        if (quillRef.current.off) {
-          quillRef.current.off('text-change');
-        }
-        
-        // Clear Quill instance
-        quillRef.current = null;
-      }
-      
-      // Clear editor container completely
-      if (editorRef.current) {
-        editorRef.current.innerHTML = '';
-      }
-      
-      // Cleanup autosave timeout
-      cleanup();
-    };
-  }, [expanded, cleanup]);
 
   // Node size constraints
   const MIN_WIDTH = 500;
@@ -381,20 +376,40 @@ const DocsNode = (props: NodeProps<DocsNodeData>) => {
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Save content before toggling if we're collapsing
-    if (expanded && quillRef.current && quillRef.current.root) {
-      const currentContent = quillRef.current.root.innerHTML;
-      setContent(currentContent);
-      
-      // Trigger immediate save if docId exists and content has changed
-      if (docId && currentContent !== content) {
-        console.log('Saving content on node close:', currentContent);
-        autoSave(currentContent);
+    // Allow expansion/collapse for all nodes (grouped nodes can expand when in folder)
+    
+    // Save content and cleanup Quill if we're collapsing
+    if (expanded && quillRef.current) {
+      // Save content before cleanup
+      if (quillRef.current.root) {
+        const currentContent = quillRef.current.root.innerHTML;
+        setContent(currentContent);
+        
+        // Auto-save the content if we have a docId
+        if (docId) {
+          console.log('Auto-saving content on collapse:', currentContent);
+          autoSave(currentContent);
+        }
       }
       
-      // Clean up Quill instance immediately
-      if (quillRef.current) {
-        quillRef.current = null;
+      // Immediately cleanup Quill when collapsing
+      if (quillRef.current.off) {
+        quillRef.current.off('text-change');
+      }
+      
+      // Destroy Quill instance completely
+      if (quillRef.current.root && quillRef.current.root.parentNode) {
+        quillRef.current.root.parentNode.removeChild(quillRef.current.root);
+      }
+      
+      // Clear Quill reference
+      quillRef.current = null;
+      
+      // Clear editor container completely
+      if (editorRef.current) {
+        editorRef.current.innerHTML = '';
+        // Force a reflow to ensure DOM is clean
+        editorRef.current.offsetHeight;
       }
     }
     
